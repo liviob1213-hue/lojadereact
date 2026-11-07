@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Menisco</title>
+<!--
+  EFEITO 02 — Dock com menisco
+  Referência: "MENISCUS — HTML CSS JS" (index.html, style.css, app.js).
+
+  O que define o efeito: a bolinha da aba ativa não flutua solta em cima da
+  barra — a borda da barra AFUNDA em volta dela, como a superfície da água
+  em volta de um objeto (o menisco). Dois "ombros" arredondados ligam a borda
+  reta ao corte circular. A bolinha anda com mola, troca de cor no caminho, e
+  dá para ARRASTAR ela pela barra.
+
+  Como é feito: o contorno da barra é um <path> SVG redesenhado a cada quadro.
+  O ombro é um círculo de raio f tangente à borda reta (centro a f abaixo dela)
+  e tangente por fora ao corte (distância entre centros = R + f). Daí sai a
+  conta do vídeo:  d = √((R + f)² − (f − cy)²).
+  Com velocidade, o ombro de trás alarga e o da frente estreita — a superfície
+  "arrasta" atrás da bolinha.
+
+  O que o Manus fez: uma bolinha brilhando acima de uma barra reta, posicionada
+  com dois "left" que brigam entre si (0%, 50%, 100%) — nas pontas ela ficava
+  meio para fora da barra.
+-->
+<style>
+  :root {
+    --fundo: #120f1c;
+    --barra: #15121f;
+    --texto: #f3f0fa;
+    --texto-2: rgba(243, 240, 250, .55);
+    --icone: rgba(243, 240, 250, .62);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid; place-items: center; overflow: hidden;
+    color: var(--texto); font-family: "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: radial-gradient(90% 70% at 50% 0%, #2a2240, transparent 70%), var(--fundo);
+  }
+  .cena { width: min(560px, 92vw); display: flex; flex-direction: column; align-items: center; }
+
+  .selo { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .22em; color: var(--texto-2); }
+  .selo i { width: 9px; height: 9px; border-radius: 50%; background: var(--cor); box-shadow: 0 0 10px var(--cor); transition: background .3s; }
+  .titulos { position: relative; height: 150px; width: 100%; margin-top: 10px; }
+  .titulo { position: absolute; inset: 0; text-align: center; transition: opacity .35s, filter .35s, transform .35s; }
+  .titulo h1 { margin: 0; font-size: clamp(56px, 13vw, 92px); font-weight: 800; letter-spacing: -.045em; line-height: 1.05; }
+  .titulo p { margin: 8px 0 0; color: var(--texto-2); font-size: 15px; }
+  .titulo.oculto { opacity: 0; filter: blur(14px); transform: scale(.98); pointer-events: none; }
+
+  /* ---------------- dock ---------------- */
+  .dock { position: relative; width: 100%; height: 112px; margin-top: 14px; touch-action: none; }
+  .dock svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+  .contorno { fill: var(--barra); stroke: rgba(255, 255, 255, .16); stroke-width: 1; }
+  .brilho { position: absolute; left: 0; top: 70px; width: 220px; height: 90px; margin-left: -110px; border-radius: 50%;
+    background: var(--cor); filter: blur(42px); opacity: .32; pointer-events: none; transition: background .3s; }
+
+  .abas { position: absolute; left: 0; right: 0; top: 40px; height: 72px; display: flex; padding: 0 18px; }
+  .aba {
+    flex: 1; border: 0; background: none; cursor: pointer; color: var(--icone);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    font-family: inherit; font-weight: 600; font-size: 11px;
+  }
+  .aba svg { position: static; width: 22px; height: 22px; transition: opacity .25s, transform .25s; }
+  .aba span { height: 14px; font-size: 11px; font-weight: 600; color: var(--cor); opacity: 0; transform: translateY(-3px); transition: opacity .25s, transform .25s; }
+  .aba[aria-selected="true"] svg { opacity: 0; transform: scale(.6); } /* a bolinha leva o ícone */
+  .aba[aria-selected="true"] span { opacity: 1; transform: none; }
+  .aba:focus-visible { outline: 2px solid var(--cor); outline-offset: -6px; border-radius: 14px; }
+
+  .bolinha {
+    position: absolute; top: 0; left: 0; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+    display: grid; place-items: center; cursor: grab; color: #15121f;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 45%), var(--cor);
+    box-shadow: 0 6px 18px -4px var(--cor), inset 0 -3px 6px rgba(0,0,0,.18);
+    will-change: transform;
+  }
+  .bolinha:active { cursor: grabbing; }
+  .bolinha svg { position: static; width: 22px; height: 22px; }
+  .dica { margin-top: 26px; font-size: 12px; color: var(--texto-2); }
+  .dica b { color: var(--texto); font-weight: 600; }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-inicio" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></g>
+      <g id="i-perfil" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4"/></g>
+      <g id="i-mensagens" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.6-4.3a8.5 8.5 0 1 1 15.4-4.7Z"/></g>
+      <g id="i-camera" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 8.5h3.6L9 6h6l1.9 2.5h3.6V19h-17Z"/><circle cx="12" cy="13.2" r="3.3"/></g>
+      <g id="i-ajustes" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></g>
+    </defs>
+  </svg>
+
+  <div class="cena" id="cena">
+    <div class="selo"><i></i>MENISCO</div>
+    <div class="titulos" id="titulos"></div>
+    <div class="dock" id="dock">
+      <div class="brilho" id="brilho"></div>
+      <svg aria-hidden="true"><path class="contorno" id="contorno" /></svg>
+      <div class="abas" role="tablist" aria-label="Navegação" id="abas"></div>
+      <div class="bolinha" id="bolinha" aria-hidden="true"><svg viewBox="0 0 24 24"><use id="iconeBolinha" href="#i-inicio"/></svg></div>
+    </div>
+    <p class="dica">Toque numa aba — ou <b>arraste a bolinha</b> pela barra.</p>
+  </div>
+
+<script>
+  const ABAS = [
+    { id: 'inicio', nome: 'Início', cor: '#c8f04a', frase: 'Tudo numa superfície só.' },
+    { id: 'perfil', nome: 'Perfil', cor: '#8fd3ff', frase: 'Um de você. Todo seu.' },
+    { id: 'mensagens', nome: 'Mensagens', cor: '#ffb43b', frase: 'Três não lidas. Todas gentis.' },
+    { id: 'camera', nome: 'Câmera', cor: '#b99bff', frase: 'Aponte, toque, pronto.' },
+    { id: 'ajustes', nome: 'Ajustes', cor: '#ff5d8a', frase: 'Menos chaves. Padrões melhores.' },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const dock = $('dock'), abasEl = $('abas'), bolinha = $('bolinha'), contorno = $('contorno'), titulos = $('titulos');
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------------------------------------------------------------- montagem
+  ABAS.forEach((a, i) => {
+    const b = document.createElement('button');
+    b.className = 'aba';
+    b.role = 'tab';
+    b.setAttribute('aria-selected', 'false');
+    b.setAttribute('aria-label', a.nome);
+    b.innerHTML = `<svg viewBox="0 0 24 24"><use href="#i-${a.id}"/></svg><span>${a.nome}</span>`;
+    b.onclick = () => irPara(i);
+    abasEl.appendChild(b);
+    const t = document.createElement('div');
+    t.className = 'titulo oculto';
+    t.innerHTML = `<h1>${a.nome}</h1><p>${a.frase}</p>`;
+    titulos.appendChild(t);
+  });
+  const botoes = [...abasEl.children];
+  const blocos = [...titulos.children];
+
+  // ---------------------------------------------------------------- geometria
+  const TOPO = 40;       // y da borda de cima da barra, dentro do dock
+  const ALTURA = 72;     // altura da barra
+  const RC = 20;         // raio dos cantos da barra
+  const RB = 26;         // raio da bolinha
+  const CY = -5;         // centro da bolinha, relativo à borda (negativo = acima)
+  const R = RB + 5;      // raio do corte: a bolinha + uma folga
+  const F = 9;           // raio dos ombros, parada
+
+  // centro (x) de cada aba, medido na tela
+  const centros = () => botoes.map((b) => b.offsetLeft + b.offsetWidth / 2);
+
+  // O contorno inteiro, com o corte em cx. fe/fd: raio do ombro esquerdo/direito.
+  function caminho(cx, fe, fd) {
+    const W = dock.clientWidth, H = ALTURA, y0 = TOPO;
+    const de = Math.sqrt((R + fe) ** 2 - (fe - CY) ** 2);
+    const dd = Math.sqrt((R + fd) ** 2 - (fd - CY) ** 2);
+    // ponto onde cada ombro encosta no corte: do centro do corte em direção ao
+    // centro do ombro, a R de distância
+    const pe = [cx + (-de) * R / (R + fe), CY + (fe - CY) * R / (R + fe)];
+    const pd = [cx + dd * R / (R + fd), CY + (fd - CY) * R / (R + fd)];
+    const n = (v) => v.toFixed(2);
+    return [
+      `M ${RC} ${y0}`,
+      `L ${n(cx - de)} ${y0}`,
+      `A ${fe} ${fe} 0 0 1 ${n(pe[0])} ${n(y0 + pe[1])}`, // ombro esquerdo
+      `A ${R} ${R} 0 0 0 ${n(pd[0])} ${n(y0 + pd[1])}`,    // o corte, por baixo da bolinha
+      `A ${fd} ${fd} 0 0 1 ${n(cx + dd)} ${y0}`,          // ombro direito
+      `L ${W - RC} ${y0}`,
+      `A ${RC} ${RC} 0 0 1 ${W} ${y0 + RC}`,
+      `L ${W} ${y0 + H - RC}`,
+      `A ${RC} ${RC} 0 0 1 ${W - RC} ${y0 + H}`,
+      `L ${RC} ${y0 + H}`,
+      `A ${RC} ${RC} 0 0 1 0 ${y0 + H - RC}`,
+      `L 0 ${y0 + RC}`,
+      `A ${RC} ${RC} 0 0 1 ${RC} ${y0}`,
+      'Z',
+    ].join(' ');
+  }
+
+  // ---------------------------------------------------------------- cor
+  const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  function corEm(x) {
+    const cs = centros();
+    if (x <= cs[0]) return ABAS[0].cor;
+    for (let i = 0; i < cs.length - 1; i++) {
+      if (x <= cs[i + 1]) {
+        const t = (x - cs[i]) / (cs[i + 1] - cs[i]);
+        const a = rgb(ABAS[i].cor), b = rgb(ABAS[i + 1].cor);
+        return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',')})`;
+      }
+    }
+    return ABAS.at(-1).cor;
+  }
+
+  // ---------------------------------------------------------------- estado e mola
+  let ativo = 0;
+  let x = 0, v = 0, alvo = 0;  // posição, velocidade e destino da bolinha
+  let arrastando = false;
+
+  function marcar(i) {
+    if (i === ativo && botoes[i].getAttribute('aria-selected') === 'true') return;
+    ativo = i;
+    botoes.forEach((b, k) => b.setAttribute('aria-selected', String(k === i)));
+    blocos.forEach((t, k) => t.classList.toggle('oculto', k !== i));
+    $('iconeBolinha').setAttribute('href', `#i-${ABAS[i].id}`);
+  }
+
+  function irPara(i) {
+    marcar(i);
+    alvo = centros()[i];
+    if (reduzido) { x = alvo; v = 0; }
+    acordar();
+  }
+
+  function desenhar() {
+    // velocidade "inclina" a superfície: o ombro de trás alarga, o da frente estreita
+    const k = Math.max(-1, Math.min(1, v / 1400));
+    const fe = F * (1 + 0.7 * Math.max(0, k) - 0.35 * Math.max(0, -k));
+    const fd = F * (1 + 0.7 * Math.max(0, -k) - 0.35 * Math.max(0, k));
+    contorno.setAttribute('d', caminho(x, fe, fd));
+    bolinha.style.transform = `translate(${x}px, ${TOPO + CY}px)`;
+    $('brilho').style.transform = `translateX(${x}px)`;
+    $('cena').style.setProperty('--cor', corEm(x));
+  }
+
+  // mola criticamente amortecida: chega rápido e assenta sem tremer
+  let quadro = 0, antes = 0;
+  function passo(agora) {
+    const dt = Math.min(0.032, (agora - antes) / 1000 || 0.016);
+    antes = agora;
+    if (!arrastando) {
+      const RIGIDEZ = 210, AMORTECE = 24;
+      v += (-RIGIDEZ * (x - alvo) - AMORTECE * v) * dt;
+      x += v * dt;
+    }
+    desenhar();
+    if (arrastando || Math.abs(x - alvo) > 0.2 || Math.abs(v) > 0.5) quadro = requestAnimationFrame(passo);
+    else { x = alvo; v = 0; desenhar(); quadro = 0; }
+  }
+  function acordar() {
+    if (!quadro) { antes = performance.now(); quadro = requestAnimationFrame(passo); }
+  }
+
+  // ---------------------------------------------------------------- arrastar
+  let ultimoX = 0, ultimoT = 0;
+  bolinha.addEventListener('pointerdown', (e) => {
+    arrastando = true;
+    try { bolinha.setPointerCapture(e.pointerId); } catch {}
+    ultimoX = e.clientX; ultimoT = performance.now();
+    acordar();
+  });
+  bolinha.addEventListener('pointermove', (e) => {
+    if (!arrastando) return;
+    const r = dock.getBoundingClientRect();
+    const cs = centros();
+    const nx = Math.max(cs[0], Math.min(cs.at(-1), e.clientX - r.left));
+    const agora = performance.now();
+    v = ((nx - x) / Math.max(1, agora - ultimoT)) * 1000; // velocidade real do dedo, para o menisco inclinar
+    ultimoT = agora;
+    x = alvo = nx;
+    // a aba mais perto da bolinha já assume título e cor
+    const perto = cs.reduce((m, c, i) => (Math.abs(c - nx) < Math.abs(cs[m] - nx) ? i : m), 0);
+    marcar(perto);
+  });
+  const soltar = () => {
+    if (!arrastando) return;
+    arrastando = false;
+    irPara(ativo); // encaixa na aba mais perto, com mola
+  };
+  bolinha.addEventListener('pointerup', soltar);
+  bolinha.addEventListener('pointercancel', soltar);
+
+  // ---------------------------------------------------------------- teclado
+  abasEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const j = (ativo + (e.key === 'ArrowRight' ? 1 : -1) + ABAS.length) % ABAS.length;
+    botoes[j].focus();
+    irPara(j);
+  });
+
+  addEventListener('resize', () => { x = alvo = centros()[ativo]; desenhar(); });
+  marcar(0);
+  x = alvo = centros()[0];
+  desenhar();
+</script>
+</body>
+</html>

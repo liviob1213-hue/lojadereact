@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cartões em ordem de leitura</title>
+<!--
+  EFEITO 06 — Cartões que pousam em ordem de leitura
+  Referência: "Dashboard Animation 🏠" (@_code_and_chill_), src/motion.ts:
+    // every page's cards land in reading order
+    landCards(cards, { y = 26, stagger = 0.06 }) → opacity 0→1, y 26→0,
+    scale .985→1, duration .6, ease 'expo.out'
+
+  O detalhe que faz diferença: "ordem de leitura" não é a ordem do HTML. Os
+  cartões são ORDENADOS pela posição na tela — de cima para baixo, e da
+  esquerda para a direita na mesma linha — antes de escalonar. Assim a página
+  se monta do jeito que o olho lê, mesmo com grade de colunas.
+  E os números grandes contam até o valor enquanto o cartão pousa.
+
+  O Manus chegou perto aqui (y 20, stagger .06) — foi o melhor dos 14 —, mas
+  escalonava pela ordem do HTML, sem o scale .985, sem a curva expo e sem os
+  números contando.
+-->
+<style>
+  :root {
+    --fundo: #121010;
+    --placa: rgba(36, 32, 31, .7);
+    --cartao: rgba(255, 255, 255, .045);
+    --borda: rgba(255, 255, 255, .07);
+    --texto: #f3eeec;
+    --texto-2: rgba(243, 238, 236, .62);
+    --texto-3: rgba(243, 238, 236, .38);
+    --vermelho: #ff4b3a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--texto); font: 13px/1.45 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+    background:
+      radial-gradient(50% 60% at 75% 30%, rgba(120, 95, 80, .35), transparent 70%),
+      radial-gradient(40% 40% at 20% 10%, rgba(255, 75, 58, .08), transparent 70%),
+      linear-gradient(180deg, #1b1716, var(--fundo));
+  }
+  .app { display: grid; grid-template-columns: 220px 1fr; gap: 14px; height: 100%; padding: 16px; }
+  .lateral, .principal { background: var(--placa); border-radius: 20px; backdrop-filter: blur(24px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 20px 50px -24px rgba(0,0,0,.8); }
+  .lateral { padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .marca { display: flex; align-items: center; gap: 9px; padding: 4px 8px 16px; }
+  .marca i { width: 30px; height: 30px; border-radius: 9px; background: var(--vermelho); }
+  .marca b { display: block; }
+  .marca small { color: var(--texto-3); font-size: 11px; }
+  .lateral button {
+    text-align: left; border: 0; background: none; color: var(--texto-2); padding: 9px 12px; border-radius: 10px;
+    font: inherit; cursor: pointer; transition: background .2s, color .2s;
+  }
+  .lateral button:hover { color: var(--texto); background: rgba(255,255,255,.04); }
+  .lateral button[aria-current="page"] { background: var(--vermelho); color: #fff; }
+  .lateral .rodape { margin-top: auto; padding: 12px; border-radius: 12px; background: var(--cartao); }
+  .lateral .rodape small { color: var(--texto-3); }
+  .lateral .rodape b { display: block; font-size: 16px; }
+
+  .principal { padding: 22px 24px; overflow: auto; }
+  .topo small { color: var(--texto-3); }
+  h1 { margin: 4px 0 2px; font-size: 26px; letter-spacing: -.02em; }
+  .sub { color: var(--texto-2); margin: 0 0 18px; }
+
+  .grade { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .c { padding: 16px; border-radius: 16px; background: var(--cartao); box-shadow: inset 0 0 0 1px var(--borda); }
+  .s2 { grid-column: span 2; } .s3 { grid-column: span 3; } .s4 { grid-column: span 4; } .s6 { grid-column: span 6; }
+  .c small { color: var(--texto-3); }
+  .grande { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .medio { font-size: 20px; font-weight: 700; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: rgba(63, 214, 139, .12); color: #4fe39a; }
+  .tag.ruim { background: rgba(255, 75, 58, .12); color: #ff8a7d; }
+  svg.linha { width: 100%; height: 140px; margin-top: 8px; }
+  .item { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--borda); color: var(--texto-2); }
+  .item:first-of-type { border-top: 0; }
+  .item b { color: var(--texto); }
+  .regua { margin-top: 12px; }
+  .regua label { display: flex; justify-content: space-between; color: var(--texto-2); font-size: 12px; }
+  .regua input { width: 100%; accent-color: var(--vermelho); }
+  .foto { height: 120px; border-radius: 12px; margin-bottom: 10px; }
+  .rosca { display: grid; place-items: center; height: 150px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="lateral">
+      <div class="marca"><i></i><div><b>Ardena</b><small>Painel do investidor</small></div></div>
+      <button data-tela="mesa" aria-current="page">Mesa do investidor</button>
+      <button data-tela="financiamento">Financiamento</button>
+      <button data-tela="rendimento">Rendimento de aluguel</button>
+      <button data-tela="mercado">À venda</button>
+      <div class="rodape"><small>Carteira</small><b data-conta="2678210" data-pre="€ ">€ 0</b></div>
+    </aside>
+    <main class="principal" id="principal"></main>
+  </div>
+
+<script>
+  const TELAS = {
+    mesa: () => `
+      <div class="topo"><small>Investimento · Mesa</small></div>
+      <h1>Mesa do investidor</h1><p class="sub">Como a carteira andou nos últimos 12 meses.</p>
+      <div class="grade">
+        <div class="c s4"><small>Valor da carteira</small><div class="grande" data-conta="5214791" data-pre="€ ">€ 0</div><span class="tag">↗ 8,4% no ano</span>
+          <svg class="linha" viewBox="0 0 400 140" preserveAspectRatio="none"><path d="M0 110 C40 104 70 112 100 96 S160 70 200 78 S270 40 300 50 S360 20 400 18" fill="none" stroke="#ff4b3a" stroke-width="2.5"/><path d="M0 110 C40 104 70 112 100 96 S160 70 200 78 S270 40 300 50 S360 20 400 18 V140 H0Z" fill="url(#g)" opacity=".35"/><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4b3a"/><stop offset="1" stop-color="#ff4b3a" stop-opacity="0"/></linearGradient></defs></svg></div>
+        <div class="c s2"><small>Pagamentos do mês</small><div class="medio" data-conta="38870" data-pre="€ ">€ 0</div>
+          <div class="item"><span>Juros</span><b>€ 12.400</b></div><div class="item"><span>Amortização</span><b>€ 19.150</b></div><div class="item"><span>Taxas</span><b>€ 7.320</b></div></div>
+        <div class="c s2"><small>Imóveis</small><div class="medio" data-conta="14">0</div></div>
+        <div class="c s2"><small>Ocupação</small><div class="medio" data-conta="92" data-pos="%">0%</div></div>
+        <div class="c s2"><small>Rendimento líquido</small><div class="medio" data-conta="4.1" data-pos="%">0</div><span class="tag ruim">↘ 0,3 pt</span></div>
+      </div>`,
+    financiamento: () => `
+      <div class="topo"><small>Investimento · Financiamento</small></div>
+      <h1>Financiamento</h1><p class="sub">Simule a parcela antes de fazer a proposta.</p>
+      <div class="grade">
+        <div class="c s3"><small>Parâmetros</small>
+          <div class="regua"><label>Valor do imóvel <b>€ 420.000</b></label><input type="range" value="60" /></div>
+          <div class="regua"><label>Entrada <b>25%</b></label><input type="range" value="25" /></div>
+          <div class="regua"><label>Prazo <b>30 anos</b></label><input type="range" value="80" /></div>
+          <div class="regua"><label>Juros <b>3,4%</b></label><input type="range" value="40" /></div></div>
+        <div class="c s3"><small>Parcela mensal</small><div class="grande" data-conta="1304" data-pre="€ ">€ 0</div><span class="tag">dentro do limite</span>
+          <div class="item"><span>Total em juros</span><b>€ 154.900</b></div><div class="item"><span>Custo efetivo</span><b>3,71% a.a.</b></div></div>
+        <div class="c s2"><small>Entrada</small><div class="medio" data-conta="105000" data-pre="€ ">€ 0</div></div>
+        <div class="c s2"><small>Financiado</small><div class="medio" data-conta="315000" data-pre="€ ">€ 0</div></div>
+        <div class="c s2"><small>Comprometimento da renda</small><div class="medio" data-conta="27" data-pos="%">0%</div></div>
+      </div>`,
+    rendimento: () => `
+      <div class="topo"><small>Investimento · Aluguel</small></div>
+      <h1>Rendimento de aluguel</h1><p class="sub">Quanto o imóvel devolve por ano, já descontando os custos.</p>
+      <div class="grade">
+        <div class="c s2"><small>Rendimento</small>
+          <div class="rosca"><svg viewBox="0 0 42 42" width="130" height="130"><circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="4"/><circle cx="21" cy="21" r="15.9" fill="none" stroke="#ffb547" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="41 100" transform="rotate(-90 21 21)"/><text x="21" y="23" text-anchor="middle" fill="#f3eeec" font-size="6" font-weight="700">4,1%</text></svg></div></div>
+        <div class="c s4"><small>Aluguel recebido por mês</small><div class="grande" data-conta="21870" data-pre="€ ">€ 0</div>
+          <div class="item"><span>Condomínio</span><b>€ 2.140</b></div><div class="item"><span>Manutenção</span><b>€ 1.380</b></div><div class="item"><span>Vacância esperada</span><b>6%</b></div></div>
+        <div class="c s3"><small>Melhor imóvel</small><div class="medio">Rua das Flores, 112</div><span class="tag">6,2% a.a.</span></div>
+        <div class="c s3"><small>Pior imóvel</small><div class="medio">Av. Central, 48</div><span class="tag ruim">2,1% a.a.</span></div>
+      </div>`,
+    mercado: () => `
+      <div class="topo"><small>Investimento · Mercado</small></div>
+      <h1>À venda</h1><p class="sub">Selecionados pelo seu perfil de rendimento.</p>
+      <div class="grade">
+        ${[['€ 290.000', 'Estúdio no centro', '#7a5a46,#c79b78'], ['€ 362.000', 'Loft perto do rio', '#5a6a7a,#a7b6c6'], ['€ 348.000', 'Casa com quintal', '#6a5a3a,#c8b07a'],
+           ['€ 410.000', 'Duplex reformado', '#4a4040,#9c8a86'], ['€ 255.000', 'Apartamento 2 qts', '#3d4a3d,#8fa58f'], ['€ 512.000', 'Cobertura', '#5a3d3d,#c49a9a']]
+          .map(([p, n, g]) => `<div class="c s2"><div class="foto" style="background:linear-gradient(135deg,${g})"></div><b>${p}</b><div style="color:var(--texto-2)">${n}</div></div>`).join('')}
+      </div>`,
+  };
+
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const expoOut = 'cubic-bezier(.16, 1, .3, 1)'; // o expo.out do GSAP
+
+  // ---------------------------------------------------------------- landCards
+  // Ordena pela posição na TELA (linha por linha, esquerda → direita) e só
+  // então escalona. Mesma linha = topos a menos de 8 px um do outro.
+  function pousar(cartoes, { y = 26, passo = 60, atraso = 0 } = {}) {
+    const ordem = [...cartoes]
+      .map((c) => ({ c, r: c.getBoundingClientRect() }))
+      .sort((a, b) => (Math.abs(a.r.top - b.r.top) < 8 ? a.r.left - b.r.left : a.r.top - b.r.top))
+      .map((x) => x.c);
+    ordem.forEach((c, i) => {
+      const espera = atraso + i * passo;
+      if (!reduzido) {
+        c.animate(
+          [{ opacity: 0, transform: `translateY(${y}px) scale(.985)` }, { opacity: 1, transform: 'none' }],
+          { duration: 600, delay: espera, easing: expoOut, fill: 'backwards' },
+        );
+      }
+      c.querySelectorAll('[data-conta]').forEach((n) => contar(n, espera + 80));
+    });
+  }
+
+  // ---------------------------------------------------------------- números que contam
+  function contar(el, atraso = 0) {
+    const fim = Number(el.dataset.conta);
+    const casas = (el.dataset.conta.split('.')[1] || '').length; // 4.1 conta com uma casa
+    const pre = el.dataset.pre || '', pos = el.dataset.pos || '';
+    const escrever = (v) => (el.textContent = pre + v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + pos);
+    if (reduzido) return escrever(fim);
+    escrever(0);
+    setTimeout(() => {
+      const t0 = performance.now();
+      const passo = (agora) => {
+        const p = Math.min(1, (agora - t0) / 1000);
+        escrever(fim * (1 - Math.pow(2, -10 * p))); // a mesma curva expo do pouso
+        if (p < 1) requestAnimationFrame(passo); else escrever(fim);
+      };
+      requestAnimationFrame(passo);
+    }, atraso);
+  }
+
+  // ---------------------------------------------------------------- troca de tela
+  const principal = document.getElementById('principal');
+  function mostrar(nome) {
+    principal.innerHTML = TELAS[nome]();
+    principal.scrollTop = 0;
+    // o título entra junto, como primeiro "cartão" da leitura
+    pousar([principal.querySelector('h1'), principal.querySelector('.sub'), ...principal.querySelectorAll('.c')]);
+  }
+
+  document.querySelector('.lateral').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tela]');
+    if (!b || b.getAttribute('aria-current') === 'page') return;
+    document.querySelectorAll('[data-tela]').forEach((x) => x.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'page');
+    mostrar(b.dataset.tela);
+  });
+
+  mostrar('mesa');
+  contar(document.querySelector('.rodape [data-conta]'), 300);
+</script>
+</body>
+</html>

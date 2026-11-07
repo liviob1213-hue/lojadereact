@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OTP de vidro</title>
+<!--
+  EFEITO 07 — Código de verificação de vidro
+  Referência: "Glassy OTP V4".
+
+  O que define o efeito, em quatro tempos depois do 4º dígito:
+  1. As quatro caixas saem da fileira e viram um QUADRADO 2×2.
+  2. Linhas se desenham ligando as caixas, uma de cada vez — um cadeado.
+  3. As caixas se fundem no centro numa caixa só, cheia de partículas girando.
+  4. Estoura: as partículas voam para fora e a caixa vira um check verde.
+     "Verify Your Number" vira "Verified Successfully".
+  Vidro com cantos chanfrados e um pedaço de canto solto, fora do cartão.
+
+  O que o Manus fez: 4 campos e um check. Sem o 2×2, sem as linhas, sem
+  partículas — e digitar não pulava para a próxima caixa, apagar não voltava,
+  colar não funcionava, e digitar na 3ª caixa com as outras vazias jogava o
+  número para a 1ª.
+
+  Comportamento de campo de código feito direito: digita e pula; apagar volta;
+  colar "4545" preenche tudo; ← → andam; aceita só número.
+-->
+<style>
+  :root {
+    --fundo: #04070d;
+    --vidro: rgba(16, 32, 46, .55);
+    --borda: rgba(140, 210, 255, .22);
+    --texto: #eaf6ff;
+    --texto-2: rgba(234, 246, 255, .56);
+    --ciano: #49c6ff;
+    --verde: #3be27a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid; place-items: center; overflow: hidden; color: var(--texto);
+    font-family: "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    background:
+      linear-gradient(115deg, transparent 30%, rgba(73, 198, 255, .14) 42%, transparent 50%),
+      linear-gradient(160deg, transparent 55%, rgba(73, 198, 255, .1) 62%, transparent 70%),
+      radial-gradient(70% 60% at 85% 20%, rgba(20, 90, 140, .45), transparent 70%),
+      radial-gradient(60% 50% at 10% 90%, rgba(10, 60, 100, .5), transparent 70%),
+      var(--fundo);
+  }
+
+  /* ---------------- o cartão chanfrado ---------------- */
+  .cartao {
+    position: relative; width: min(420px, 90vw); padding: 34px 30px 30px; text-align: center;
+    background: var(--vidro); backdrop-filter: blur(22px) saturate(160%);
+    clip-path: polygon(46px 0, 100% 0, 100% calc(100% - 46px), calc(100% - 46px) 100%, 0 100%, 0 46px);
+  }
+  /* a borda do polígono: um SVG por cima, porque clip-path corta o border */
+  .cartao svg.moldura { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .moldura polygon { fill: none; stroke: var(--borda); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .canto { position: absolute; width: 40px; height: 40px; pointer-events: none;
+    background: linear-gradient(135deg, rgba(140,210,255,.28), rgba(140,210,255,.04));
+    box-shadow: inset 0 0 0 1px var(--borda); }
+  .canto.c1 { clip-path: polygon(0 0, 100% 0, 0 100%); }
+  .canto.c2 { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+  .palco { position: relative; }
+  .palco .canto.c1 { left: -14px; top: -14px; }
+  .palco .canto.c2 { right: -14px; bottom: -14px; }
+
+  .icone { width: 38px; height: 38px; margin: 0 auto 14px; border-radius: 10px; display: grid; place-items: center;
+    background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); transition: color .4s, box-shadow .4s; }
+  .icone svg { width: 18px; height: 18px; }
+  h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -.01em; transition: opacity .3s, filter .3s; }
+  h1 em { font-style: normal; background: linear-gradient(90deg, #6fd5ff, #2f9bff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sucesso h1 em { background-image: linear-gradient(90deg, #6bf59d, #1fc45f); }
+  .sub { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--texto-2); transition: opacity .3s, filter .3s; }
+  .apagado { opacity: .15; filter: blur(3px); }
+
+  /* ---------------- as caixas ---------------- */
+  .codigo { position: relative; height: 150px; margin: 22px auto 10px; width: 240px; }
+  .codigo svg.linhas { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .linhas line { stroke: rgba(140, 210, 255, .55); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .caixa {
+    position: absolute; width: 46px; height: 50px; border-radius: 12px; border: 0; outline: 0;
+    text-align: center; font-family: inherit; font-weight: 600; font-size: 20px; line-height: 50px; color: var(--texto);
+    background: rgba(0, 0, 0, .28); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.14);
+    caret-color: var(--ciano); transition: box-shadow .2s;
+  }
+  .caixa:focus { box-shadow: inset 0 0 0 1.5px var(--ciano), 0 0 0 4px rgba(73,198,255,.16), 0 0 22px rgba(73,198,255,.35); }
+  .caixa.cheia { box-shadow: inset 0 0 0 1.5px rgba(140,210,255,.45); }
+  .caixa:disabled { cursor: default; }
+
+  /* a caixa do fim: o check, e o redemoinho de partículas antes dele */
+  .nucleo { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; margin: -31px 0 0 -31px; border-radius: 16px;
+    display: grid; place-items: center; opacity: 0; transform: scale(.4); pointer-events: none;
+    background: rgba(10, 30, 20, .4); box-shadow: inset 0 0 0 1.5px rgba(59,226,122,.7), 0 0 30px rgba(59,226,122,.35); }
+  .nucleo svg { width: 26px; height: 26px; color: var(--verde); opacity: 0; }
+  .particula { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 1.5px; pointer-events: none; }
+  .selo { margin-top: 6px; font-size: 11.5px; color: var(--verde); opacity: 0; transition: opacity .5s .4s; }
+  .sucesso .selo { opacity: 1; }
+  .reenviar { margin-top: 12px; font-size: 12px; color: var(--texto-2); }
+  .reenviar button { border: 0; background: none; color: var(--ciano); font: inherit; cursor: pointer; padding: 0; }
+</style>
+</head>
+<body>
+  <div class="palco">
+    <div class="canto c1"></div><div class="canto c2"></div>
+    <section class="cartao" id="cartao" aria-live="polite">
+      <svg class="moldura" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon id="moldura" /></svg>
+      <div class="icone" id="icone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/></svg>
+      </div>
+      <h1 id="titulo">Confirme o seu <em>número</em></h1>
+      <p class="sub" id="sub">Mandamos um código de 4 dígitos para +55 (11) •••• ••42.<br />Ele confere sozinho quando você terminar.</p>
+      <div class="codigo" id="codigo">
+        <svg class="linhas" id="linhas" aria-hidden="true"></svg>
+        <div class="nucleo" id="nucleo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+      </div>
+      <div class="selo">🔒 Verificado e seguro</div>
+      <div class="reenviar" id="reenviar">Não chegou? <button id="refazer">Reenviar</button></div>
+    </section>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const codigo = $('codigo');
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const espera = (ms) => new Promise((r) => setTimeout(r, reduzido ? 0 : ms));
+  const N = 4;
+
+  // a moldura do polígono, desenhada no mesmo formato do clip-path
+  function moldura() {
+    const c = $('cartao'), w = c.offsetWidth, h = c.offsetHeight, k = 46;
+    const p = (x, y) => `${(x / w) * 100},${(y / h) * 100}`;
+    $('moldura').setAttribute('points', [p(k, 0), p(w, 0), p(w, h - k), p(w - k, h), p(0, h), p(0, k)].join(' '));
+  }
+
+  // ---------------------------------------------------------------- posições
+  // fileira (enquanto digita) e quadrado 2×2 (depois)
+  const W = 240, H = 150, CW = 46, CH = 50, GAP = 12;
+  const fileira = (i) => [(W - (N * CW + (N - 1) * GAP)) / 2 + i * (CW + GAP), (H - CH) / 2];
+  const quadrado = (i) => [W / 2 + (i % 2 ? 22 : -22 - CW), H / 2 + (i < 2 ? -CH - 8 : 8)];
+  const pos = (el, [x, y]) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
+
+  let caixas = [];
+  function montar() {
+    caixas.forEach((c) => c.remove());
+    caixas = Array.from({ length: N }, (_, i) => {
+      const c = document.createElement('input');
+      c.className = 'caixa';
+      c.inputMode = 'numeric';
+      c.autocomplete = i === 0 ? 'one-time-code' : 'off';
+      c.maxLength = 1;
+      c.setAttribute('aria-label', `Dígito ${i + 1} de ${N}`);
+      pos(c, fileira(i));
+      codigo.appendChild(c);
+      return c;
+    });
+    caixas[0].focus();
+  }
+
+  // ---------------------------------------------------------------- digitar
+  codigo.addEventListener('input', (e) => {
+    const c = e.target.closest('.caixa');
+    if (!c) return;
+    const i = caixas.indexOf(c);
+    const so = c.value.replace(/\D/g, '');
+    if (so.length > 1) return colar(so, i); // celular às vezes manda o código inteiro num campo só
+    c.value = so;
+    c.classList.toggle('cheia', !!so);
+    if (so && i < N - 1) caixas[i + 1].focus();
+    conferir();
+  });
+  codigo.addEventListener('keydown', (e) => {
+    const c = e.target.closest('.caixa');
+    if (!c) return;
+    const i = caixas.indexOf(c);
+    if (e.key === 'Backspace' && !c.value && i > 0) {
+      // caixa vazia + apagar = volta e apaga a anterior
+      e.preventDefault();
+      caixas[i - 1].value = '';
+      caixas[i - 1].classList.remove('cheia');
+      caixas[i - 1].focus();
+    } else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); caixas[i - 1].focus(); }
+    else if (e.key === 'ArrowRight' && i < N - 1) { e.preventDefault(); caixas[i + 1].focus(); }
+  });
+  codigo.addEventListener('paste', (e) => {
+    const c = e.target.closest('.caixa');
+    if (!c) return;
+    e.preventDefault();
+    colar((e.clipboardData?.getData('text') || '').replace(/\D/g, ''), caixas.indexOf(c));
+  });
+  codigo.addEventListener('focusin', (e) => e.target.closest('.caixa')?.select());
+  function colar(digitos, de) {
+    [...digitos].slice(0, N - de).forEach((d, k) => { caixas[de + k].value = d; caixas[de + k].classList.add('cheia'); });
+    caixas[Math.min(N - 1, de + digitos.length)].focus();
+    conferir();
+  }
+
+  let conferindo = false;
+  function conferir() {
+    const valor = caixas.map((c) => c.value).join('');
+    if (valor.length === N && !conferindo) verificar();
+  }
+
+  // ---------------------------------------------------------------- a sequência
+  async function verificar() {
+    conferindo = true;
+    caixas.forEach((c) => { c.disabled = true; c.blur(); });
+    // 1. a fileira vira quadrado 2×2
+    caixas.forEach((c, i) => {
+      const [x0, y0] = fileira(i), [x1, y1] = quadrado(i);
+      pos(c, [x1, y1]);
+      if (!reduzido) c.animate([{ transform: `translate(${x0 - x1}px, ${y0 - y1}px)` }, { transform: 'none' }],
+        { duration: 520, delay: i * 40, easing: 'cubic-bezier(.34,1.4,.64,1)', fill: 'backwards' });
+    });
+    await espera(650);
+
+    // 2. as linhas se desenham, uma de cada vez: cima, esquerda, direita, baixo
+    const centro = (i) => { const [x, y] = quadrado(i); return [x + CW / 2, y + CH / 2]; };
+    const pares = [[0, 1], [0, 2], [1, 3], [2, 3]];
+    $('linhas').innerHTML = pares.map(([a, b]) => {
+      const [x1, y1] = centro(a), [x2, y2] = centro(b);
+      // a linha liga as BORDAS das caixas, não os centros
+      const h = y1 === y2;
+      return `<line pathLength="1" x1="${h ? x1 + CW / 2 : x1}" y1="${h ? y1 : y1 + CH / 2}" x2="${h ? x2 - CW / 2 : x2}" y2="${h ? y2 : y2 - CH / 2}"/>`;
+    }).join('');
+    [...$('linhas').children].forEach((l, k) => l.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }],
+      { duration: reduzido ? 0 : 260, delay: reduzido ? 0 : k * 170, easing: 'ease-out', fill: 'forwards' }));
+    await espera(4 * 170 + 300);
+
+    // 3. tudo se funde no centro; o texto apaga
+    $('titulo').classList.add('apagado'); $('sub').classList.add('apagado'); $('reenviar').style.visibility = 'hidden';
+    const [cx, cy] = [W / 2, H / 2];
+    caixas.forEach((c, i) => {
+      const [x, y] = quadrado(i);
+      c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${cx - CW / 2 - x}px, ${cy - CH / 2 - y}px) scale(.6)`, opacity: 0 }],
+        { duration: reduzido ? 0 : 420, easing: 'cubic-bezier(.6,0,.4,1)', fill: 'forwards' });
+    });
+    $('linhas').animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduzido ? 0 : 300, fill: 'forwards' });
+    const nucleo = $('nucleo');
+    nucleo.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: reduzido ? 0 : 420, delay: reduzido ? 0 : 220, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
+    const turbilhao = particulas(26, 'turbilhao');
+    await espera(1100);
+
+    // 4. estoura e vira o check
+    turbilhao.forEach((p) => p.remove());
+    particulas(46, 'estouro');
+    nucleo.querySelector('svg').animate([{ opacity: 0, transform: 'scale(.3)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: reduzido ? 0 : 380, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' });
+    $('cartao').classList.add('sucesso');
+    $('titulo').innerHTML = 'Verificado com <em>sucesso</em>';
+    $('sub').innerHTML = 'O seu número foi confirmado.<br />Tudo pronto para continuar.';
+    $('titulo').classList.remove('apagado'); $('sub').classList.remove('apagado');
+    $('icone').style.color = 'var(--verde)';
+    $('icone').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.9 7.5-9.5V6Z"/><path d="m8.8 12 2.2 2.2 4.4-4.4"/></svg>';
+    $('reenviar').innerHTML = '<button id="refazer">Ver de novo</button>';
+    $('reenviar').style.visibility = '';
+    $('refazer').onclick = recomecar;
+  }
+
+  // ---------------------------------------------------------------- partículas
+  const CORES = ['#3be27a', '#49c6ff', '#9be7ff', '#ffffff', '#1fc45f'];
+  function particulas(n, tipo) {
+    if (reduzido) return [];
+    return Array.from({ length: n }, (_, i) => {
+      const p = document.createElement('i');
+      p.className = 'particula';
+      p.style.background = CORES[i % CORES.length];
+      codigo.appendChild(p);
+      const a = (i / n) * Math.PI * 2 + Math.random() * .5;
+      if (tipo === 'turbilhao') {
+        // giram dentro da caixa do centro
+        const r = 6 + Math.random() * 16;
+        const quadros = Array.from({ length: 9 }, (_, k) => {
+          const b = a + k * 0.7;
+          return { transform: `translate(${Math.cos(b) * r - 3}px, ${Math.sin(b) * r - 3}px) rotate(${k * 40}deg)` };
+        });
+        p.animate(quadros, { duration: 1100, easing: 'linear', fill: 'forwards' });
+      } else {
+        // voam para fora, perdem velocidade e somem
+        const d = 70 + Math.random() * 120;
+        p.animate([
+          { transform: 'translate(-3px,-3px) scale(1)', opacity: 1 },
+          { transform: `translate(${Math.cos(a) * d - 3}px, ${Math.sin(a) * d * .8 - 3}px) rotate(${Math.random() * 360}deg) scale(${.4 + Math.random() * .6})`, opacity: 0 },
+        ], { duration: 900 + Math.random() * 700, easing: 'cubic-bezier(.1,.7,.3,1)', fill: 'forwards' }).onfinish = () => p.remove();
+      }
+      return p;
+    });
+  }
+
+  // ---------------------------------------------------------------- recomeçar
+  function recomecar() {
+    conferindo = false;
+    $('cartao').classList.remove('sucesso');
+    $('linhas').innerHTML = '';
+    $('linhas').getAnimations().forEach((a) => a.cancel());
+    $('nucleo').getAnimations().forEach((a) => a.cancel());
+    $('nucleo').querySelector('svg').getAnimations().forEach((a) => a.cancel());
+    $('titulo').innerHTML = 'Confirme o seu <em>número</em>';
+    $('sub').innerHTML = 'Mandamos um código de 4 dígitos para +55 (11) •••• ••42.<br />Ele confere sozinho quando você terminar.';
+    $('icone').style.color = '';
+    $('icone').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/></svg>';
+    $('reenviar').innerHTML = 'Não chegou? <button id="refazer">Reenviar</button>';
+    $('refazer').onclick = recomecar;
+    montar();
+  }
+
+  $('refazer').onclick = recomecar;
+  addEventListener('resize', moldura);
+  moldura();
+  montar();
+</script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vidro espacial</title>
+<!--
+  EFEITO 09 — Vidro espacial
+  Referência: "Glassy Dashboard V18", com Glassy Sidebar V5, Navigation Tabs V5,
+  Admin Dashboard V2 e Payment Checkout V2 da mesma série.
+
+  O que define o efeito:
+  1. Placas separadas, nunca coladas na borda — é o vão entre elas que faz flutuar.
+  2. Um ambiente quente e desfocado atrás: sem algo para desfocar, não há vidro.
+  3. Fio de luz na borda de cima de toda placa, tile, pílula e botão.
+  4. Serifada nos títulos e nos números grandes, sans limpa no resto.
+  5. Um único bloco de cor por tela; o resto é vidro neutro.
+  6. Tudo entra em cena saindo do desfoque.
+
+  Este é o único dos catorze que vem como estilo completo, com os tokens
+  separados: ESTILO.md é a ficha, vidro-espacial.css tem os tokens e os
+  componentes, vidro-espacial.js tem o movimento e o som.
+-->
+  <link rel="stylesheet" href="vidro-espacial.css" />
+  <style>
+    /* Só o layout desta demonstração. O estilo em si está todo no .css do modelo. */
+    .cena {
+      display: grid; grid-template-columns: 236px minmax(0, 1fr) 290px; gap: var(--ve-vao);
+      height: 100vh; padding: 26px; box-sizing: border-box; max-width: 1480px; margin: 0 auto;
+    }
+    .lateral { display: flex; flex-direction: column; padding: 14px 10px; min-height: 0; }
+    .conta { display: flex; align-items: center; gap: 10px; padding: 6px 8px 14px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto;
+      background: linear-gradient(135deg, #f0b48a, #b8644a); box-shadow: 0 0 0 2px rgba(255,255,255,.18); }
+    .conta b { display: block; font-size: 13px; }
+    .conta small { color: var(--ve-texto-3); font-size: 11px; }
+    .lateral .ve-nav { flex: 1; }
+    .lateral .rodape { border-top: 1px solid var(--ve-borda); padding-top: 6px; }
+
+    .principal { display: flex; flex-direction: column; padding: 22px 24px; min-height: 0; overflow: hidden; }
+    .topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+    .topo .acoes { display: flex; align-items: center; gap: 8px; }
+    .tela { flex: 1; min-height: 0; overflow: auto; margin: 0 -6px; padding: 0 6px 6px; }
+    .grade { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+    .g3 { grid-column: span 3; } .g4 { grid-column: span 4; } .g2 { grid-column: span 2; } .g6 { grid-column: span 6; }
+    .cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .linha-num { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+    /* "código de barras": a taxa de entrega em traços finos */
+    .barcode { display: flex; gap: 2px; height: 22px; margin-top: 12px; }
+    .barcode i { flex: 1; border-radius: 2px; background: var(--ve-positivo); opacity: .75; }
+    .barcode i.off { background: rgba(255,255,255,.18); }
+
+    .contatos { display: grid; gap: 8px; }
+    .contato { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 10px; font-size: 12.5px; }
+    .contato .ponto { width: 8px; height: 8px; border-radius: 50%; }
+    .contato small { color: var(--ve-texto-3); }
+
+    .rosca { display: flex; align-items: center; gap: 16px; }
+    .legenda { display: grid; gap: 7px; font-size: 12.5px; flex: 1; }
+    .legenda div { display: flex; align-items: center; gap: 8px; }
+    .legenda i { width: 8px; height: 8px; border-radius: 50%; }
+    .legenda .ve-pilula { margin-left: auto; }
+
+    .coluna { display: flex; flex-direction: column; gap: var(--ve-vao); min-height: 0; }
+    .coluna > * { padding: 18px; }
+    .coluna .ve-barras { height: 120px; margin-top: 14px; }
+    .meses { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10.5px; opacity: .8; }
+
+    .tabela { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .tabela th { text-align: left; font-weight: 500; color: var(--ve-texto-3); padding: 8px 10px; font-size: 11.5px; }
+    .tabela td { padding: 10px; border-top: 1px solid var(--ve-borda); }
+    .tabela .nome { display: flex; align-items: center; gap: 9px; }
+    .tabela .inicial { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.12); }
+    .prog { height: 5px; width: 90px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
+    .prog i { display: block; height: 100%; border-radius: inherit; background: var(--ve-positivo); }
+
+    .doca { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 6px; display: flex; gap: 4px; border-radius: 999px; z-index: 5; }
+
+    @media (max-width: 1180px) {
+      .cena { grid-template-columns: 220px minmax(0, 1fr); height: auto; min-height: 100vh; }
+      .coluna { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
+      .coluna > * { flex: 1 1 240px; }
+    }
+    @media (max-width: 760px) {
+      .cena { grid-template-columns: 1fr; padding: 14px; }
+      .grade > * { grid-column: span 6; }
+    }
+  </style>
+</head>
+<body class="ve-ambiente">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <g id="i-visao" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></g>
+      <g id="i-caixa" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8.5 8.5 0 0 1-12.4 7.5L3.5 21l1.6-4.6A8.5 8.5 0 1 1 21 12Z"/></g>
+      <g id="i-leads" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/></g>
+      <g id="i-negocio" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 7.5h16v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5Z"/><path d="M9 7.5V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5v2"/></g>
+      <g id="i-contatos" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8.5" r="3.5"/><path d="M3 19.5c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5"/><path d="M16 5.5a3 3 0 0 1 0 6M18 15.2c1.6.6 2.6 2 3 4.3"/></g>
+      <g id="i-tarefas" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></g>
+      <g id="i-agenda" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></g>
+      <g id="i-relat" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></g>
+      <g id="i-ajustes" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></g>
+      <g id="i-busca" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+      <g id="i-mais" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g>
+      <g id="i-som" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></g>
+    </defs>
+  </svg>
+
+  <div class="cena">
+    <!-- ======================= lateral ======================= -->
+    <aside class="ve-placa lateral" data-ve-entrar>
+      <div class="conta">
+        <span class="avatar"></span>
+        <div><b>Espaço da Sarah</b><small>Plano Growth</small></div>
+      </div>
+      <nav class="ve-nav" id="nav" data-ve-indicador=".ativo">
+        <button class="ve-nav-item ativo" data-tela="visao"><svg viewBox="0 0 24 24"><use href="#i-visao"/></svg>Visão geral</button>
+        <button class="ve-nav-item" data-tela="visao"><svg viewBox="0 0 24 24"><use href="#i-caixa"/></svg>Caixa de entrada<span class="ve-contador">3</span></button>
+        <button class="ve-nav-item" data-tela="leads"><svg viewBox="0 0 24 24"><use href="#i-leads"/></svg>Leads</button>
+        <button class="ve-nav-item" data-tela="leads"><svg viewBox="0 0 24 24"><use href="#i-negocio"/></svg>Negócios</button>
+        <button class="ve-nav-item" data-tela="leads"><svg viewBox="0 0 24 24"><use href="#i-contatos"/></svg>Contatos</button>
+        <div class="ve-secao">Rotina</div>
+        <button class="ve-nav-item" data-tela="visao"><svg viewBox="0 0 24 24"><use href="#i-tarefas"/></svg>Tarefas</button>
+        <button class="ve-nav-item" data-tela="visao"><svg viewBox="0 0 24 24"><use href="#i-agenda"/></svg>Agenda</button>
+        <button class="ve-nav-item" data-tela="visao"><svg viewBox="0 0 24 24"><use href="#i-relat"/></svg>Relatórios</button>
+      </nav>
+      <div class="rodape ve-nav">
+        <button class="ve-nav-item"><svg viewBox="0 0 24 24"><use href="#i-ajustes"/></svg>Configurações</button>
+      </div>
+    </aside>
+
+    <!-- ======================= conteúdo ======================= -->
+    <main class="ve-placa principal" data-ve-entrar>
+      <header class="topo">
+        <div>
+          <h1 class="ve-titulo">Boa tarde, Sarah</h1>
+          <p class="ve-sub">As novidades das suas mensagens desde ontem</p>
+        </div>
+        <div class="acoes">
+          <button class="ve-botao ve-icone" aria-label="Buscar"><svg viewBox="0 0 24 24" width="16" height="16"><use href="#i-busca"/></svg></button>
+          <span class="ve-pilula">Sincronizado agora</span>
+          <span class="avatar" style="width:32px;height:32px"></span>
+        </div>
+      </header>
+
+      <!-- ---------- visão geral ---------- -->
+      <section class="tela" id="tela-visao">
+        <div class="grade">
+          <article class="ve-tile g4" data-ve-entrar>
+            <div class="cab"><span class="ve-rotulo">Taxa de entrega</span></div>
+            <div class="linha-num">
+              <span class="ve-numero" data-ve-contar="91.5" data-ve-depois="%">0</span>
+              <span class="ve-pilula ve-pilula--sobe">↗ 5,3%</span>
+              <span class="ve-sub" style="margin-left:auto">8,3% pendente</span>
+            </div>
+            <div class="barcode" id="barcode"></div>
+          </article>
+
+          <article class="ve-tile g2" data-ve-entrar>
+            <div class="cab"><span class="ve-rotulo">Campanhas</span></div>
+            <div class="linha-num"><span class="ve-numero" data-ve-contar="25">0</span><span class="ve-pilula">4 ativas</span></div>
+          </article>
+
+          <article class="ve-tile g3" data-ve-entrar>
+            <div class="cab">
+              <span class="ve-rotulo">Principais contatos</span>
+              <div class="ve-segmentos" data-ve-indicador=".ativo">
+                <button class="ve-segmento ativo">Semana</button><button class="ve-segmento">Mês</button>
+              </div>
+            </div>
+            <div class="contatos">
+              <div class="contato"><i class="ponto" style="background:#8de3bf"></i><span>Sarah Mitchell</span><small>+12%</small><b>1.240</b></div>
+              <div class="contato"><i class="ponto" style="background:#9fb7ff"></i><span>Davi Kim</span><small>+8%</small><b>850</b></div>
+              <div class="contato"><i class="ponto" style="background:#c9b6ff"></i><span>Priya Patel</span><small>+6%</small><b>425</b></div>
+              <div class="contato"><i class="ponto" style="background:rgba(255,255,255,.3)"></i><span>Outros</span><small>−2%</small><b>7.011</b></div>
+            </div>
+          </article>
+
+          <article class="ve-tile g3" data-ve-entrar>
+            <div class="cab"><span class="ve-rotulo">Mensagens por tipo</span><span class="ve-pilula">Este mês</span></div>
+            <div class="rosca">
+              <svg viewBox="0 0 42 42" width="96" height="96" aria-label="Diretas 54%, campanhas 31%, automações 15%">
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="5"/>
+                <path pathLength="1" d="M21 5.1a15.9 15.9 0 1 1 0 31.8a15.9 15.9 0 1 1 0-31.8" fill="none" stroke="#9fb7ff" stroke-width="5" stroke-linecap="round" style="stroke-dasharray:.54 1"/>
+              </svg>
+              <div class="legenda">
+                <div><i style="background:#9fb7ff"></i>Diretas<span class="ve-pilula ve-pilula--sobe">↗ 5,3%</span></div>
+                <div><i style="background:#8de3bf"></i>Campanhas<span class="ve-pilula ve-pilula--sobe">↗ 23,4%</span></div>
+                <div><i style="background:#c9b6ff"></i>Automações<span class="ve-pilula ve-pilula--desce">↘ 1,6%</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="ve-tile g6" data-ve-entrar>
+            <div class="cab"><span class="ve-rotulo">Mensagens por mês</span><span class="ve-pilula">Este ano</span></div>
+            <div class="ve-barras" id="barrasMes"></div>
+            <div class="meses"><span>jan</span><span>fev</span><span>mar</span><span>abr</span><span>mai</span><span>jun</span><span>jul</span><span>ago</span></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ---------- leads ---------- -->
+      <section class="tela" id="tela-leads" hidden>
+        <div class="grade">
+          <article class="ve-tile g2" data-ve-entrar><span class="ve-rotulo">Leads no total</span><div class="ve-numero" data-ve-contar="248">0</div></article>
+          <article class="ve-tile g2" data-ve-entrar><span class="ve-rotulo">Novos na semana</span><div class="ve-numero" data-ve-contar="36">0</div></article>
+          <article class="ve-tile g2" data-ve-entrar><span class="ve-rotulo">Conversão</span><div class="ve-numero" data-ve-contar="31" data-ve-depois="%">0</div></article>
+          <article class="ve-tile g6" data-ve-entrar>
+            <div class="cab">
+              <div class="ve-segmentos" data-ve-indicador=".ativo">
+                <button class="ve-segmento ativo">Todos</button><button class="ve-segmento">Novos</button><button class="ve-segmento">Em contato</button><button class="ve-segmento">Qualificados</button>
+              </div>
+              <button class="ve-botao ve-botao--primario"><svg viewBox="0 0 24 24" width="14" height="14"><use href="#i-mais"/></svg>Novo lead</button>
+            </div>
+            <table class="tabela">
+              <thead><tr><th>Nome</th><th>Origem</th><th>Interesse</th><th>Estado</th><th>Valor</th></tr></thead>
+              <tbody>
+                <tr><td><span class="nome"><span class="inicial">EL</span>Elena Lopes</span></td><td>Site</td><td><div class="prog"><i style="width:84%"></i></div></td><td><span class="ve-pilula ve-pilula--sobe">Qualificado</span></td><td>R$ 18.400</td></tr>
+                <tr><td><span class="nome"><span class="inicial">MS</span>Marcos Silva</span></td><td>Indicação</td><td><div class="prog"><i style="width:62%"></i></div></td><td><span class="ve-pilula">Em contato</span></td><td>R$ 9.200</td></tr>
+                <tr><td><span class="nome"><span class="inicial">NS</span>Nina Souza</span></td><td>Instagram</td><td><div class="prog"><i style="width:48%"></i></div></td><td><span class="ve-pilula">Novo</span></td><td>R$ 4.750</td></tr>
+                <tr><td><span class="nome"><span class="inicial">TB</span>Tiago Barros</span></td><td>Evento</td><td><div class="prog"><i style="width:30%"></i></div></td><td><span class="ve-pilula ve-pilula--desce">Frio</span></td><td>R$ 2.100</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <!-- ======================= coluna de widgets ======================= -->
+    <aside class="coluna">
+      <article class="ve-tile ve-tile--destaque" data-ve-entrar>
+        <div class="cab"><span class="ve-rotulo" style="color:inherit">Contatos</span></div>
+        <div class="ve-numero" data-ve-contar="3196">0</div>
+        <div class="linha-num" style="margin-top:4px"><small style="opacity:.8">102 novos em julho</small><span class="ve-pilula" style="color:#fff">↗ 12%</span></div>
+        <div class="ve-barras" id="barrasContatos"></div>
+        <div class="meses"><span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span></div>
+      </article>
+
+      <article class="ve-placa" data-ve-entrar>
+        <div class="cab"><span class="ve-rotulo">Créditos</span></div>
+        <div class="linha-num" style="align-items:center">
+          <span class="ve-numero" data-ve-contar="2382" data-ve-antes="R$ ">0</span>
+          <button class="ve-botao ve-redondo" style="margin-left:auto" aria-label="Comprar créditos" data-som="abrir"><svg viewBox="0 0 24 24" width="16" height="16"><use href="#i-mais"/></svg></button>
+        </div>
+        <small class="ve-sub">R$ 350 usados este mês</small>
+      </article>
+
+      <article class="ve-placa" data-ve-entrar>
+        <div class="cab"><span class="ve-rotulo">Mensagens enviadas</span><span class="ve-pilula">Sempre</span></div>
+        <div class="ve-numero" data-ve-contar="87776">0</div>
+        <small class="ve-sub">1.243 hoje <span class="ve-pilula ve-pilula--sobe">↗ 51%</span></small>
+        <svg class="ve-linha" viewBox="0 0 240 90" width="100%" height="90" style="margin-top:10px" aria-label="Curva de envios, subindo no fim do mês">
+          <path pathLength="1" d="M0 20 C40 22 60 40 90 62 S150 86 180 70 S220 30 240 26" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </article>
+    </aside>
+  </div>
+
+  <!-- A doca de baixo: liga e desliga o som, como a barrinha das janelas do visionOS. -->
+  <div class="ve-placa doca" data-ve-entrar>
+    <button class="ve-botao" id="som" data-som=""><svg viewBox="0 0 24 24" width="15" height="15"><use href="#i-som"/></svg><span>Som ligado</span></button>
+  </div>
+
+  <script src="vidro-espacial.js"></script>
+  <script>
+    const { iniciar, trocarTela, ligarSom, somLigado } = window.VidroEspacial;
+
+    // dados de exemplo
+    const barcode = document.getElementById('barcode');
+    for (let i = 0; i < 46; i++) barcode.insertAdjacentHTML('beforeend', `<i class="${i > 41 ? 'off' : ''}"></i>`);
+    const barras = (id, valores, opc = {}) => {
+      const el = document.getElementById(id);
+      valores.forEach((v, i) => el.insertAdjacentHTML('beforeend',
+        `<i class="ve-barra ${opc.forte === i ? 'forte' : ''} ${opc.fantasma === i ? 'fantasma' : ''}" style="height:${v}%;--i:${i}"></i>`));
+    };
+    barras('barrasMes', [34, 28, 52, 46, 70, 44, 88, 62], { forte: 6 });
+    barras('barrasContatos', [62, 92, 54, 40, 30, 74, 56], { fantasma: 6 });
+
+    iniciar();
+
+    // navegação entre as duas telas da demonstração
+    let atual = document.getElementById('tela-visao');
+    document.getElementById('nav').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tela]');
+      if (!b) return;
+      const nova = document.getElementById('tela-' + b.dataset.tela);
+      if (nova === atual) return;
+      trocarTela(atual, nova);
+      atual = nova;
+    });
+
+    // botão de som
+    const som = document.getElementById('som');
+    const pintar = () => (som.querySelector('span').textContent = somLigado() ? 'Som ligado' : 'Som desligado');
+    som.onclick = () => { ligarSom(!somLigado()); pintar(); };
+    pintar();
+  </script>
+</body>
+</html>

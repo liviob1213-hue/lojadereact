@@ -1,0 +1,300 @@
+/* =========================================================================
+   VIDRO ESPACIAL — modelo de estilo
+   Extraído da série "Glassy" do perfil code.xr (Instagram). A interface não
+   fica colada na tela: ela FLUTUA em placas de vidro separadas sobre um
+   ambiente desfocado, como janelas num óculos de realidade mista.
+
+   Para usar em outro app: copie esta pasta, ponha <body class="ve-ambiente">,
+   monte com as classes .ve-* e chame iniciar() de vidro-espacial.js.
+   Para mudar a cara, mexa só nos tokens do :root — o resto obedece.
+   ========================================================================= */
+
+:root {
+  /* ---- ambiente: o que fica atrás do vidro ----
+     O vidro só parece vidro se houver algo para desfocar. Sem foto, três
+     manchas de luz quente fazem o papel de uma sala à meia-luz. Para usar uma
+     foto de verdade: --ve-foto: url("sala.jpg"). */
+  --ve-fundo: #15110e;
+  --ve-foto: none;
+  --ve-luz-1: rgba(255, 186, 120, .28); /* abajur, canto de cima */
+  --ve-luz-2: rgba(120, 90, 70, .45);   /* madeira, embaixo */
+  --ve-luz-3: rgba(90, 120, 170, .18);  /* janela, à direita */
+
+  /* ---- vidro ---- */
+  --ve-placa: rgba(52, 45, 40, .38);
+  --ve-tile: rgba(255, 255, 255, .055);
+  --ve-tile-hover: rgba(255, 255, 255, .085);
+  --ve-item-ativo: rgba(255, 255, 255, .13);
+  --ve-borda: rgba(255, 255, 255, .11);
+  /* o fio de luz na borda de cima é o que faz o olho ler "vidro" */
+  --ve-reflexo: inset 0 1px 0 rgba(255, 255, 255, .2), inset 0 0 0 1px rgba(255, 255, 255, .05);
+  --ve-sombra: 0 40px 80px -28px rgba(0, 0, 0, .6), 0 12px 28px -12px rgba(0, 0, 0, .45);
+  --ve-desfoque: blur(36px) saturate(165%);
+
+  /* ---- texto ---- */
+  --ve-texto: #f5f0ea;
+  --ve-texto-2: rgba(245, 240, 234, .72);
+  --ve-texto-3: rgba(245, 240, 234, .46);
+
+  /* ---- acento: UM por tela ----
+     O bloco de cor saturada é o herói da tela. Dois heróis = nenhum. */
+  --ve-acento: #4c8df6;
+  --ve-acento-texto: #ffffff;
+  --ve-acento-vidro: linear-gradient(165deg, rgba(96, 146, 250, .9), rgba(44, 90, 214, .78));
+  --ve-positivo: #8de3bf;
+  --ve-negativo: #ff9a8a;
+  --ve-brilho: #7ff0d4; /* luz de indicador (abas, "lâmpada") */
+
+  /* ---- forma ---- */
+  --ve-r-placa: 30px;
+  --ve-r-tile: 20px;
+  --ve-r-item: 14px;
+  --ve-vao: 16px; /* espaço entre placas: é ele que faz flutuar */
+
+  /* ---- tipo ----
+     Serifada nos títulos e nos números grandes, sans no resto. A serifada é
+     a assinatura editorial; sem ela o mesmo layout volta a parecer template.
+     Pilha sem download: New York no Mac, Sitka no Windows, Georgia no resto. */
+  --ve-serif: ui-serif, "Sitka Display", "Iowan Old Style", Charter, Georgia, serif;
+  --ve-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- movimento ---- */
+  --ve-suave: cubic-bezier(.22, 1, .36, 1);   /* chega e assenta */
+  --ve-mola: cubic-bezier(.34, 1.45, .64, 1); /* passa um pouquinho e volta */
+  --ve-t-rapido: 140ms;
+  --ve-t-medio: 320ms;
+  --ve-t-lento: 640ms;
+}
+
+/* ================================================================ ambiente */
+.ve-ambiente {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ve-texto);
+  font: 13.5px/1.5 var(--ve-sans);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(60% 50% at 18% 8%, var(--ve-luz-1), transparent 70%),
+    radial-gradient(70% 45% at 50% 105%, var(--ve-luz-2), transparent 70%),
+    radial-gradient(40% 60% at 95% 40%, var(--ve-luz-3), transparent 70%),
+    var(--ve-foto) center / cover no-repeat,
+    var(--ve-fundo);
+  background-attachment: fixed;
+}
+
+/* ================================================================ placas */
+/* Placa: o pedaço grande de vidro (lateral, conteúdo, coluna de widgets). */
+.ve-placa {
+  position: relative;
+  background: var(--ve-placa);
+  border-radius: var(--ve-r-placa);
+  box-shadow: var(--ve-reflexo), var(--ve-sombra);
+  backdrop-filter: var(--ve-desfoque);
+  -webkit-backdrop-filter: var(--ve-desfoque);
+  isolation: isolate;
+}
+
+/* Tile: cartão dentro da placa, um degrau mais claro. */
+.ve-tile {
+  position: relative;
+  background: var(--ve-tile);
+  border-radius: var(--ve-r-tile);
+  box-shadow: var(--ve-reflexo);
+  padding: 16px 18px;
+  transition: background var(--ve-t-medio) var(--ve-suave), transform var(--ve-t-medio) var(--ve-suave);
+}
+.ve-tile:hover { background: var(--ve-tile-hover); }
+
+/* O herói da tela: vidro colorido, texto branco. */
+.ve-tile--destaque {
+  background: var(--ve-acento-vidro);
+  color: var(--ve-acento-texto);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 24px 48px -20px rgba(44, 90, 214, .55);
+}
+.ve-tile--destaque:hover { background: var(--ve-acento-vidro); transform: translateY(-2px); }
+
+/* ================================================================ tipo */
+.ve-titulo {
+  font: 400 30px/1.15 var(--ve-serif);
+  letter-spacing: -.01em;
+  margin: 0;
+}
+.ve-sub { color: var(--ve-texto-3); font-size: 12px; margin: 4px 0 0; }
+.ve-rotulo { color: var(--ve-texto-2); font-size: 12.5px; font-weight: 500; }
+.ve-numero {
+  font: 400 34px/1.05 var(--ve-serif);
+  letter-spacing: -.015em;
+  font-variant-numeric: tabular-nums;
+}
+.ve-secao {
+  font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ve-texto-3); padding: 14px 12px 6px;
+}
+
+/* ================================================================ pílulas */
+.ve-pilula {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(255, 255, 255, .1); box-shadow: var(--ve-reflexo);
+  font-size: 11px; font-weight: 600; color: var(--ve-texto-2);
+}
+.ve-pilula--sobe { color: var(--ve-positivo); }
+.ve-pilula--desce { color: var(--ve-negativo); }
+
+/* ================================================================ botões */
+.ve-botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 34px; padding: 0 14px; border: 0; border-radius: 999px;
+  background: rgba(255, 255, 255, .1); color: var(--ve-texto);
+  box-shadow: var(--ve-reflexo);
+  font: 500 12.5px var(--ve-sans); cursor: pointer; text-decoration: none;
+  transition: background var(--ve-t-rapido), transform var(--ve-t-medio) var(--ve-mola), box-shadow var(--ve-t-medio);
+}
+.ve-botao:hover { background: rgba(255, 255, 255, .16); }
+.ve-botao:active { transform: scale(.95); transition-duration: 60ms; }
+.ve-botao--primario {
+  background: var(--ve-acento); color: var(--ve-acento-texto);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 22px -8px var(--ve-acento);
+}
+.ve-botao--primario:hover { background: var(--ve-acento); filter: brightness(1.08); }
+/* Redondo e branco: a ação principal de um tile ("+", "→"). */
+.ve-redondo {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  background: #fff; color: #1b1612; box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .5);
+}
+.ve-redondo:hover { background: #fff; transform: scale(1.06); }
+.ve-icone {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%;
+}
+
+/* ================================================================ navegação */
+.ve-nav { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
+.ve-nav-item {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 9px 12px; border: 0; border-radius: var(--ve-r-item);
+  background: transparent; color: var(--ve-texto-2);
+  font: 500 13px var(--ve-sans); text-align: left; cursor: pointer;
+  transition: color var(--ve-t-medio) var(--ve-suave);
+}
+.ve-nav-item svg { width: 17px; height: 17px; flex: 0 0 auto; opacity: .85; }
+.ve-nav-item:hover { color: var(--ve-texto); }
+/* hover: um vidrinho bem fraco por trás, que some devagar */
+.ve-nav-item::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  background: rgba(255, 255, 255, .05); opacity: 0; transition: opacity var(--ve-t-medio);
+}
+.ve-nav-item:hover::before { opacity: 1; }
+.ve-nav-item.ativo { color: var(--ve-texto); }
+.ve-nav-item .ve-contador {
+  margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+  background: var(--ve-acento); color: var(--ve-acento-texto);
+}
+
+/* O indicador que escorrega: um fundo só, que viaja até o item ativo. */
+.com-indicador { position: relative; isolation: isolate; }
+.indicador {
+  position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none;
+  border-radius: var(--ve-r-item);
+  background: var(--ve-item-ativo);
+  box-shadow: var(--ve-reflexo), 0 6px 16px -8px rgba(0, 0, 0, .5);
+  transition:
+    transform var(--ve-t-lento) var(--ve-mola),
+    width var(--ve-t-lento) var(--ve-mola),
+    height var(--ve-t-lento) var(--ve-mola),
+    opacity var(--ve-t-medio);
+}
+
+/* Segmentos: abas pequenas dentro de um tile ("Todos · Novos · Qualificados"). */
+.ve-segmentos {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px;
+  background: rgba(0, 0, 0, .18); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .25);
+}
+.ve-segmento {
+  position: relative; z-index: 1; border: 0; background: transparent; cursor: pointer;
+  padding: 5px 12px; border-radius: 999px; color: var(--ve-texto-2);
+  font: 500 12px var(--ve-sans); transition: color var(--ve-t-medio);
+}
+.ve-segmento.ativo { color: var(--ve-texto); }
+.ve-segmentos .indicador { border-radius: 999px; }
+
+/* Barra de abas com "lâmpada": uma luz que acende sobre a aba ativa. */
+.ve-abas-lampada {
+  position: relative; display: flex; justify-content: space-around; gap: 4px;
+  padding: 10px 12px; border-radius: 26px;
+}
+.ve-abas-lampada .ve-aba {
+  position: relative; z-index: 1; flex: 1; display: grid; place-items: center; gap: 3px;
+  border: 0; background: transparent; color: var(--ve-texto-3); cursor: pointer;
+  font: 500 11px var(--ve-sans); padding: 6px 4px; transition: color var(--ve-t-medio);
+}
+.ve-abas-lampada .ve-aba svg { width: 20px; height: 20px; }
+.ve-abas-lampada .ve-aba.ativo { color: var(--ve-texto); }
+.ve-abas-lampada .indicador {
+  background: radial-gradient(60% 90% at 50% 0%, color-mix(in srgb, var(--ve-brilho) 38%, transparent), transparent 75%);
+  box-shadow: none; border-radius: 16px;
+}
+.ve-abas-lampada .indicador::before {
+  content: ''; position: absolute; left: 30%; right: 30%; top: -10px; height: 3px; border-radius: 3px;
+  background: var(--ve-brilho); box-shadow: 0 0 12px var(--ve-brilho), 0 0 26px var(--ve-brilho);
+}
+
+/* ================================================================ dados */
+/* Barras: crescem de baixo para cima quando entram em foco. */
+.ve-barras { display: flex; align-items: flex-end; gap: 8px; height: 110px; }
+.ve-barra {
+  flex: 1; border-radius: 10px 10px 6px 6px;
+  background: linear-gradient(180deg, rgba(198, 210, 255, .55), rgba(150, 168, 235, .28));
+  transform-origin: bottom; transform: scaleY(0);
+  transition: transform var(--ve-t-lento) var(--ve-mola);
+  transition-delay: calc(var(--ve-atraso, 0ms) + var(--i, 0) * 40ms);
+}
+.ve-barra.forte { background: linear-gradient(180deg, var(--ve-acento), color-mix(in srgb, var(--ve-acento) 55%, transparent)); }
+.ve-tile--destaque .ve-barra { background: rgba(255, 255, 255, .85); }
+.ve-tile--destaque .ve-barra.fantasma {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .5) 0 3px, transparent 3px 7px);
+}
+.ve-dentro .ve-barra, .ve-barras.ve-dentro .ve-barra { transform: scaleY(1); }
+
+/* Linha que se desenha (SVG com pathLength="1"). */
+.ve-linha path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.2s var(--ve-suave) var(--ve-atraso, 0ms); }
+.ve-dentro .ve-linha path, .ve-linha.ve-dentro path { stroke-dashoffset: 0; }
+
+/* ================================================================ entrada */
+/* Tudo que tem data-ve-entrar nasce desfocado e entra em foco, um depois do
+   outro (o atraso vem do JS). É a assinatura do estilo. */
+[data-ve-entrar] {
+  opacity: 0;
+  filter: blur(14px);
+  transform: scale(.985);
+  transition:
+    opacity var(--ve-t-lento) var(--ve-suave),
+    filter var(--ve-t-lento) var(--ve-suave),
+    transform var(--ve-t-lento) var(--ve-suave);
+  transition-delay: var(--ve-atraso, 0ms);
+}
+[data-ve-entrar].ve-dentro { opacity: 1; filter: blur(0); transform: none; }
+
+/* Troca de tela: o conteúdo velho vira vidro fosco, o novo entra em foco. */
+.ve-saindo {
+  opacity: 0 !important; filter: blur(16px) !important; transform: scale(.99) !important;
+  transition: opacity 200ms var(--ve-suave), filter 200ms var(--ve-suave), transform 200ms var(--ve-suave) !important;
+}
+.ve-entrando { animation: ve-foco var(--ve-t-lento) var(--ve-suave) both; }
+@keyframes ve-foco {
+  from { opacity: 0; filter: blur(16px); transform: scale(.99); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+
+/* ================================================================ acessibilidade */
+:where(.ve-ambiente) :focus-visible { outline: 2px solid var(--ve-brilho); outline-offset: 2px; border-radius: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ve-entrar] { filter: none; transform: none; transition: opacity 200ms linear; }
+  .ve-barra { transform: none; transition: none; }
+  .ve-linha path { stroke-dashoffset: 0; transition: none; }
+  .indicador { transition: none; }
+  .ve-entrando { animation: none; }
+  .ve-saindo { filter: none !important; transform: none !important; }
+}

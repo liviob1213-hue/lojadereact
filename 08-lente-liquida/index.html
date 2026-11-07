@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lente líquida</title>
+<!--
+  EFEITO 08 — Troca de página com lente de vidro líquido
+  Referência: "iOS app publishing dashboard" — Vitrea (@_code_and_chill_),
+  src/glass.ts:  // the rim: pushed along the normal, like a meniscus
+                 // one backdrop pass per pane: the lens replaces the frost
+
+  O que define o efeito: ao trocar de página, uma onda de vidro atravessa a
+  tela na diagonal. Dentro dela o conteúdo aparece DEFORMADO, como visto através
+  de água (refração), com um fio de luz na borda e bolhas subindo. Quando a onda
+  cobre o meio da tela, a página por baixo já é outra.
+
+  Como é feito (sem biblioteca):
+  - A lente é uma cópia da página, recortada por um clip-path em forma de onda
+    que viaja na diagonal; a cópia passa por um filtro SVG de deslocamento
+    (feTurbulence + feDisplacementMap) — é o que entorta o conteúdo.
+  - A borda é o mesmo caminho, só com traço claro e um brilho.
+  - A página troca no meio da passagem, escondida atrás da lente.
+
+  O que o Manus fez: abas e um deslize lateral — a lente, que é o efeito
+  inteiro, não existe.
+-->
+<style>
+  :root {
+    --fundo: #0b0c0e;
+    --placa: rgba(28, 30, 34, .74);
+    --cartao: rgba(255, 255, 255, .045);
+    --borda: rgba(255, 255, 255, .07);
+    --texto: #eef0f4;
+    --texto-2: rgba(238, 240, 244, .62);
+    --texto-3: rgba(238, 240, 244, .38);
+    --azul: #5b9cff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    overflow: hidden; color: var(--texto);
+    font: 13px/1.45 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    background: var(--fundo);
+  }
+  /* as curvas grandes de vidro escuro do fundo, como no vídeo */
+  .fundo { position: fixed; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 80% at 110% -10%, rgba(255,255,255,.07) 0 30%, transparent 30.4%),
+      radial-gradient(100% 70% at -20% 120%, rgba(255,255,255,.05) 0 34%, transparent 34.4%),
+      linear-gradient(160deg, #15171b, #08090b); }
+
+  .app { position: absolute; inset: 0; display: grid; grid-template-columns: 54px 1fr; gap: 12px; padding: 14px; }
+  .trilho { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 0; border-radius: 999px;
+    background: var(--placa); box-shadow: inset 0 0 0 1px var(--borda); }
+  .trilho i { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.05); }
+  .trilho i.on { background: var(--azul); box-shadow: 0 0 16px rgba(91,156,255,.5); }
+  .area { display: flex; flex-direction: column; min-width: 0; }
+  .topo { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .marca { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+  .marca i { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #a9c8ff, #4b7fe0); }
+  nav { display: flex; gap: 2px; padding: 3px; margin: 0 auto; border-radius: 999px; background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1px var(--borda); }
+  nav button { border: 0; background: none; color: var(--texto-2); padding: 6px 13px; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 12.5px; }
+  nav button[aria-current="page"] { background: rgba(255,255,255,.12); color: var(--texto); box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+  .usuario { width: 30px; height: 30px; border-radius: 50%; background: #e7e9ee; color: #1a1c20; display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+
+  .pagina { flex: 1; min-height: 0; overflow: hidden; }
+  h1 { margin: 0 0 14px; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; }
+  .grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .c { padding: 15px; border-radius: 16px; background: var(--cartao); box-shadow: inset 0 0 0 1px var(--borda); }
+  .s2 { grid-column: span 2; } .s3 { grid-column: span 3; } .s4 { grid-column: span 4; }
+  .c small { color: var(--texto-3); display: block; }
+  .c b { font-size: 22px; letter-spacing: -.01em; }
+  .c em { font-style: normal; font-size: 11px; color: #63e6a3; margin-left: 6px; }
+  svg.curva { width: 100%; height: 150px; display: block; margin-top: 8px; }
+  .estrelas { color: #ffc547; letter-spacing: 2px; }
+  .barra { height: 5px; border-radius: 5px; background: rgba(255,255,255,.08); margin-top: 7px; }
+  .barra i { display: block; height: 100%; border-radius: inherit; background: var(--azul); }
+  .coluna { padding: 12px; border-radius: 14px; background: rgba(255,255,255,.03); box-shadow: inset 0 0 0 1px var(--borda); }
+  .coluna h3 { margin: 0 0 8px; font-size: 12px; color: var(--texto-2); }
+  .tarefa { padding: 9px; border-radius: 10px; background: rgba(255,255,255,.05); margin-bottom: 7px; font-size: 12px; }
+
+  /* ---------------- a lente ---------------- */
+  .lente { position: fixed; inset: 0; z-index: 10; pointer-events: none; visibility: hidden; }
+  /* a cópia leva o fundo junto: sem ele, a página de baixo aparece através e
+     o texto sai dobrado dentro da lente */
+  .lente .copia { position: absolute; inset: 0; filter: url(#refrata) brightness(1.12) saturate(1.25);
+    background:
+      radial-gradient(120% 80% at 110% -10%, rgba(255,255,255,.07) 0 30%, transparent 30.4%),
+      radial-gradient(100% 70% at -20% 120%, rgba(255,255,255,.05) 0 34%, transparent 34.4%),
+      linear-gradient(160deg, #15171b, #08090b); }
+  .lente svg.aro { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .aro path { fill: rgba(200, 220, 255, .05); stroke: rgba(255,255,255,.55); stroke-width: 1.4; filter: drop-shadow(0 0 6px rgba(255,255,255,.35)); }
+  .bolha { position: absolute; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle at 32% 30%, rgba(255,255,255,.8), rgba(255,255,255,.08) 45%, rgba(255,255,255,.02) 70%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), inset -2px -3px 6px rgba(255,255,255,.12); }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="refrata" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="2" seed="7" result="ruido">
+        <animate attributeName="baseFrequency" dur="6s" values="0.006 0.012;0.009 0.016;0.006 0.012" repeatCount="indefinite" />
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="ruido" scale="46" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+
+  <div class="fundo"></div>
+  <div class="app" id="app">
+    <aside class="trilho"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></aside>
+    <div class="area">
+      <header class="topo">
+        <div class="marca"><i></i>vitrea</div>
+        <nav id="nav" aria-label="Seções">
+          <button aria-current="page" data-p="visao">Visão geral</button>
+          <button data-p="apps">Apps</button>
+          <button data-p="versoes">Versões</button>
+          <button data-p="publico">Público</button>
+          <button data-p="repasses">Repasses</button>
+        </nav>
+        <div class="usuario">NH</div>
+      </header>
+      <section class="pagina" id="pagina"></section>
+    </div>
+  </div>
+  <div class="lente" id="lente"><div class="copia" id="copia"></div><svg class="aro" id="aro"><path id="aroCaminho" /></svg></div>
+
+<script>
+  // ---------------------------------------------------------------- páginas
+  const curva = (cor) => `<svg class="curva" viewBox="0 0 400 150" preserveAspectRatio="none"><path d="M0 120 C60 110 90 118 140 100 S220 80 260 86 S330 50 400 40" fill="none" stroke="${cor}" stroke-width="2.4"/><path d="M0 120 C60 110 90 118 140 100 S220 80 260 86 S330 50 400 40 V150 H0Z" fill="${cor}" opacity=".12"/></svg>`;
+  const PAGINAS = {
+    visao: `<h1>Visão geral<br>do estúdio</h1><div class="grade">
+      <div class="c"><small>Receita no mês</small><b>$60.716</b><em>+3% vs set</em></div>
+      <div class="c"><small>Downloads em 7 dias</small><b>47.953</b><em>+9%</em></div>
+      <div class="c"><small>Nota média</small><b>4,63</b></div>
+      <div class="c"><small>Assinantes</small><b>21.113</b></div>
+      <div class="c s3"><small>Receita · últimos 12 meses</small><b>$888.310</b>${curva('#5b9cff')}</div>
+      <div class="c"><small>Avaliações</small><b>4,63</b> <span class="estrelas">★★★★★</span>
+        ${[75, 15, 4, 1, 5].map((v) => `<div class="barra"><i style="width:${v}%"></i></div>`).join('')}</div></div>`,
+    apps: `<h1>Seus<br>apps</h1><div class="grade">
+      ${['Tally', 'Driftwood', 'Paperleaf', 'Cinder', 'Herbarium', 'Platform'].map((n, i) => `<div class="c s2"><small>${['Finanças', 'Música', 'Leitura', 'Fotos', 'Natureza', 'Ferramentas'][i]}</small><b>${n}</b><div class="barra"><i style="width:${40 + i * 9}%"></i></div></div>`).join('')}</div>`,
+    versoes: `<h1>Quadro de<br>versões</h1><div class="grade">
+      ${['Em desenvolvimento', 'TestFlight', 'Em revisão', 'Pronto para venda'].map((t, i) => `<div class="coluna"><h3>${t}</h3>${Array.from({ length: 3 - (i % 2) }, (_, k) => `<div class="tarefa">${['Tally 3.1.3', 'Driftwood 2.9.0', 'Paperleaf 5.1.0', 'Cinder 1.10.0', 'Herbarium 4.2.1'][(i + k) % 5]}</div>`).join('')}</div>`).join('')}</div>`,
+    publico: `<h1>Seu<br>público</h1><div class="grade">
+      <div class="c"><small>Assinantes ativos</small><b>21.113</b></div><div class="c"><small>Pagantes</small><b>34,3%</b></div><div class="c"><small>Downloads em 30 dias</small><b>142.867</b></div><div class="c"><small>Retenção D30</small><b>41%</b></div>
+      <div class="c s4"><small>Assinantes ativos · 12 meses</small>${curva('#b18cff')}</div></div>`,
+    repasses: `<h1>Re-<br>passes</h1><div class="grade">
+      <div class="c s2"><small>Próximo repasse</small><b>$18.420</b><em>em 6 dias</em></div><div class="c s2"><small>Pagos no ano</small><b>$311.921</b></div>
+      <div class="c s4"><small>Repasses por mês</small>${curva('#63e6a3')}</div></div>`,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const pagina = $('pagina'), lente = $('lente'), copia = $('copia'), aroCaminho = $('aroCaminho');
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  pagina.innerHTML = PAGINAS.visao;
+
+  // ---------------------------------------------------------------- a forma da onda
+  // Uma faixa larga e curva atravessada na diagonal. p vai de 0 a 1: a faixa
+  // entra pelo canto de baixo à esquerda e sai pelo de cima à direita.
+  function onda(p, W, H, t) {
+    const L = Math.hypot(W, H);
+    const larg = L * 0.42;                        // espessura da onda
+    const centro = -larg + p * (L + 2 * larg);    // posição ao longo da diagonal
+    const ang = Math.atan2(-H, W);                // de baixo-esquerda para cima-direita
+    const ux = Math.cos(ang), uy = Math.sin(ang); // direção do avanço
+    const vx = -uy, vy = ux;                      // ao longo da crista
+    const ox = 0, oy = H;                         // origem: canto de baixo à esquerda
+    const ponto = (s, d) => [ox + ux * s + vx * d, oy + uy * s + vy * d];
+    const N = 14, pts = [];
+    // borda da frente: ondulada, e a ondulação anda com o tempo (líquido)
+    for (let i = 0; i <= N; i++) {
+      const d = -L + (2 * L * i) / N;
+      const balanco = Math.sin(i * 0.9 + t * 2.2) * 26 + Math.sin(i * 2.1 - t * 1.4) * 12;
+      pts.push(ponto(centro + larg / 2 + balanco, d));
+    }
+    // borda de trás: mais calma
+    for (let i = N; i >= 0; i--) {
+      const d = -L + (2 * L * i) / N;
+      const balanco = Math.sin(i * 0.7 - t * 1.6) * 18;
+      pts.push(ponto(centro - larg / 2 + balanco, d));
+    }
+    // curva suave pelos pontos (Catmull-Rom → Bézier)
+    let s = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      s += ` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    return s + ' Z';
+  }
+
+  // ---------------------------------------------------------------- bolhas
+  function bolhas(W, H) {
+    const lista = [];
+    for (let i = 0; i < 14; i++) {
+      const b = document.createElement('i');
+      const r = 6 + Math.random() * 22;
+      b.className = 'bolha';
+      Object.assign(b.style, { width: r * 2 + 'px', height: r * 2 + 'px' });
+      lente.appendChild(b);
+      lista.push({ el: b, r, x0: Math.random(), atraso: Math.random() * 0.35, sobe: 80 + Math.random() * 180 });
+    }
+    return lista;
+  }
+
+  // ---------------------------------------------------------------- a passagem
+  let passando = false;
+  async function passar(nova) {
+    if (passando) return;
+    passando = true;
+    const W = innerWidth, H = innerHeight;
+    if (reduzido) { pagina.innerHTML = PAGINAS[nova]; passando = false; return; }
+
+    // a cópia da página: é ela que aparece entortada dentro da lente
+    copia.innerHTML = '';
+    copia.appendChild($('app').cloneNode(true)).removeAttribute('id');
+    lente.style.visibility = 'visible';
+    $('aro').setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const bs = bolhas(W, H);
+
+    const DURACAO = 1150;
+    const t0 = performance.now();
+    let trocou = false;
+    await new Promise((fim) => {
+      const quadro = (agora) => {
+        const bruto = Math.min(1, (agora - t0) / DURACAO);
+        const p = bruto < .5 ? 4 * bruto ** 3 : 1 - (-2 * bruto + 2) ** 3 / 2; // power3.inOut
+        const d = onda(p, W, H, agora / 1000);
+        copia.style.clipPath = `path('${d}')`;
+        aroCaminho.setAttribute('d', d);
+        // no meio da passagem, a página de baixo já é a nova; e a cópia também,
+        // para a lente refratar a página que está chegando
+        if (!trocou && p > 0.48) {
+          trocou = true;
+          pagina.innerHTML = PAGINAS[nova];
+          copia.innerHTML = '';
+          copia.appendChild($('app').cloneNode(true)).removeAttribute('id');
+        }
+        // bolhas: sobem dentro da onda e somem
+        for (const b of bs) {
+          const q = Math.max(0, Math.min(1, (bruto - b.atraso) / 0.65));
+          const ang = Math.atan2(-H, W);
+          const ao = -Math.hypot(W, H) * .3 + p * Math.hypot(W, H) * 1.6;
+          const x = Math.cos(ang) * ao + (b.x0 - .5) * W * .7 * -Math.sin(ang) * -1;
+          const y = H + Math.sin(ang) * ao + (b.x0 - .5) * H * .7 * Math.cos(ang) - q * b.sobe;
+          b.el.style.transform = `translate(${x - b.r}px, ${y - b.r}px) scale(${.6 + q * .5})`;
+          b.el.style.opacity = String(q > 0 && q < 1 ? Math.sin(q * Math.PI) : 0);
+        }
+        bruto < 1 ? requestAnimationFrame(quadro) : fim();
+      };
+      requestAnimationFrame(quadro);
+    });
+    bs.forEach((b) => b.el.remove());
+    lente.style.visibility = 'hidden';
+    copia.innerHTML = '';
+    passando = false;
+  }
+
+  // Para estudar a lente parada: no console, lenteParada(0.5) congela a onda no
+  // meio do caminho; lenteParada() solta.
+  window.lenteParada = (p) => {
+    if (p == null) { lente.style.visibility = 'hidden'; copia.innerHTML = ''; return; }
+    const W = innerWidth, H = innerHeight;
+    copia.innerHTML = '';
+    copia.appendChild($('app').cloneNode(true)).removeAttribute('id');
+    $('aro').setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const d = onda(p, W, H, 0);
+    copia.style.clipPath = `path('${d}')`;
+    aroCaminho.setAttribute('d', d);
+    lente.style.visibility = 'visible';
+  };
+
+  $('nav').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.getAttribute('aria-current') === 'page' || passando) return;
+    $('nav').querySelectorAll('button').forEach((x) => x.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'page');
+    passar(b.dataset.p);
+  });
+</script>
+</body>
+</html>

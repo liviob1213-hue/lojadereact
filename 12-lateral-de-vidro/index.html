@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lateral de vidro</title>
+<!--
+  EFEITO 12 — Lateral de vidro que recolhe
+  Referência: "Glassy SideBar V5" (code.xr).
+
+  O que define o efeito:
+  - Recolhida, é um TRILHO de ícones em vidro fosco. Passar o mouse num ícone
+    mostra uma dica flutuante ao lado ("Mensagens", "Buscar ⌘K").
+  - Aberta, vira a lateral inteira: busca, seções (Principal, Espaço de
+    trabalho), contadores, um projeto que abre em árvore, chave de modo noturno
+    e o usuário no pé. Os rótulos entram um depois do outro.
+  - O item ativo é uma pílula de vidro mais clara, com fio de luz em cima, que
+    ESCORREGA de um item para o outro — o fundo é um só e viaja.
+
+  O que o Manus fez: só a largura anima; quatro itens; o primeiro fica "ativo"
+  para sempre (não há estado, clicar não muda nada); sem dicas, sem seções.
+
+  Atalho: ⌘B / Ctrl+B abre e recolhe.
+-->
+<style>
+  :root {
+    --vidro: rgba(58, 48, 42, .42);
+    --borda: rgba(255, 255, 255, .13);
+    --texto: #f6efe8;
+    --texto-2: rgba(246, 239, 232, .7);
+    --texto-3: rgba(246, 239, 232, .42);
+    --vermelho: #ef4b3b;
+    --mola: cubic-bezier(.34, 1.3, .64, 1);
+    --suave: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    overflow: hidden; color: var(--texto);
+    font: 13px/1.4 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    transition: filter .6s;
+  }
+  body.noite { filter: brightness(.62) saturate(.85); }
+
+  /* ---------------- a sala atrás (sem foto: luz, parede, TV, móvel) ---------------- */
+  .sala { position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(30% 40% at 85% 18%, rgba(255, 196, 120, .35), transparent 70%),
+      linear-gradient(180deg, #d9d2c8 0%, #cfc6ba 62%, #7a5a3e 62.2%, #5e432d 74%, #4a3524 100%); }
+  .tv { position: absolute; left: 12%; right: 26%; top: 18%; height: 36%; border-radius: 6px;
+    background: linear-gradient(160deg, #262626, #0c0c0c); box-shadow: 0 30px 60px -20px rgba(0,0,0,.6); }
+  .prateleira { position: absolute; right: 6%; top: 8%; width: 14%; height: 52%; border-radius: 4px;
+    background: repeating-linear-gradient(180deg, #8a6440 0 6px, transparent 6px 26%); opacity: .7; }
+  .planta { position: absolute; left: 10%; top: 50%; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, #5f7a3a, #2f4220 70%); filter: blur(1px); }
+
+  /* ---------------- a lateral ---------------- */
+  .sb {
+    position: fixed; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 64px; height: min(620px, 92vh); padding: 12px 8px;
+    display: flex; flex-direction: column; border-radius: 26px;
+    background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03)), var(--vidro);
+    backdrop-filter: blur(26px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px var(--borda), 0 40px 80px -30px rgba(0,0,0,.6);
+    transition: width .55s var(--mola);
+  }
+  .sb.aberta { width: 236px; }
+
+  .cabeca { position: relative; display: flex; align-items: center; gap: 10px; padding: 2px 4px 10px; height: 46px; }
+  .logo { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center;
+    background: var(--vermelho); color: #fff; font-weight: 800; box-shadow: 0 6px 16px -6px var(--vermelho); }
+  .nome { white-space: nowrap; overflow: hidden; }
+  .nome b { display: block; font-size: 13.5px; }
+  .nome small { color: var(--texto-3); font-size: 11px; }
+  .alternar {
+    position: absolute; right: -14px; top: 9px; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+    display: grid; place-items: center; color: #2b2420; background: #f5efe9; box-shadow: 0 4px 12px -2px rgba(0,0,0,.4);
+    transition: transform .55s var(--mola);
+  }
+  .sb.aberta .alternar { transform: rotate(180deg); }
+
+  .busca { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; margin: 0 0 8px; border-radius: 12px;
+    color: var(--texto-2); background: rgba(0,0,0,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); white-space: nowrap; overflow: hidden; }
+  .busca svg { flex: 0 0 auto; } /* o texto invisível da recolhida não pode espremer o ícone */
+  .busca kbd { margin-left: auto; font-size: 10px; font-family: inherit; color: var(--texto-3); background: rgba(255,255,255,.08); border-radius: 5px; padding: 1px 5px; }
+
+  .lista { position: relative; flex: 1; min-height: 0; overflow: hidden auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 1px; }
+  .secao { height: 22px; padding: 6px 12px 0; font-size: 9.5px; font-weight: 700; letter-spacing: .14em; color: var(--texto-3); white-space: nowrap; overflow: hidden; }
+  .sb:not(.aberta) .secao { height: 10px; color: transparent; }
+  .sb:not(.aberta) .secao::after { content: ''; display: block; height: 1px; margin: 0 6px; background: rgba(255,255,255,.08); }
+
+  .item {
+    position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; width: 100%; height: 38px; padding: 0 12px;
+    border: 0; border-radius: 13px; background: none; color: var(--texto-2); cursor: pointer; text-align: left;
+    font-family: inherit; font-size: 13px; white-space: nowrap; transition: color .25s;
+  }
+  .item:hover { color: var(--texto); }
+  .item.ativo { color: var(--texto); }
+  .item svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .item .rotulo { overflow: hidden; }
+  .contador { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; font-size: 10.5px; display: grid; place-items: center;
+    background: rgba(255,255,255,.1); color: var(--texto-2); }
+  .contador.alerta { background: var(--vermelho); color: #fff; }
+  .ponto { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; background: var(--vermelho); }
+  /* recolhida: contadores viram uma bolinha no canto do ícone */
+  .sb:not(.aberta) .contador, .sb:not(.aberta) .ponto { position: absolute; left: 28px; top: 6px; min-width: 0; width: 8px; height: 8px; padding: 0; font-size: 0; }
+  .sb:not(.aberta) .contador:not(.alerta) { display: none; }
+
+  /* rótulos: some na recolhida; ao abrir, entram em cascata */
+  .rotulo, .nome, .busca span, .busca kbd, .seta { transition: opacity .25s, transform .35s var(--suave); }
+  .sb:not(.aberta) :is(.rotulo, .nome, .busca span, .busca kbd, .seta) { opacity: 0; transform: translateX(-6px); pointer-events: none; }
+  .sb.aberta :is(.rotulo, .nome, .busca span, .busca kbd, .seta) { transition-delay: calc(var(--i, 0) * 22ms + 120ms); }
+
+  /* o projeto que abre em árvore */
+  .seta { margin-left: auto; transition: transform .3s; }
+  .item[aria-expanded="true"] .seta { transform: rotate(180deg); }
+  .filhos { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s var(--suave); }
+  .filhos.aberto { grid-template-rows: 1fr; }
+  .filhos > div { overflow: hidden; }
+  .filho { display: flex; align-items: center; gap: 9px; height: 30px; padding-left: 38px; color: var(--texto-2); font-size: 12px; white-space: nowrap; }
+  .filho i { width: 7px; height: 7px; border-radius: 50%; }
+  .sb:not(.aberta) .filhos { grid-template-rows: 0fr; }
+
+  /* o fundo do item ativo: um só, que escorrega */
+  .indicador { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: 13px;
+    background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.1));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 0 0 1px rgba(255,255,255,.18), 0 8px 18px -8px rgba(0,0,0,.45);
+    transition: transform .5s var(--mola), width .5s var(--mola), height .5s var(--mola); }
+
+  .pe { border-top: 1px solid rgba(255,255,255,.08); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .chave { margin-left: auto; width: 32px; height: 18px; border-radius: 999px; background: rgba(255,255,255,.18); position: relative; transition: background .3s; }
+  .chave::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .3s var(--mola); }
+  body.noite .chave { background: var(--vermelho); }
+  body.noite .chave::after { transform: translateX(14px); }
+  .sb:not(.aberta) .chave { display: none; }
+  .usuario { display: flex; align-items: center; gap: 10px; padding: 6px 4px; white-space: nowrap; overflow: hidden; }
+  .usuario .foto { position: relative; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 50%; background: linear-gradient(135deg, #c99a7a, #6b4a3a); }
+  .usuario .foto::after { content: ''; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%; background: #3fd68b; box-shadow: 0 0 0 2px #4a3a32; }
+  .usuario b { display: block; font-size: 12.5px; }
+  .usuario small { color: var(--texto-3); font-size: 11px; }
+
+  /* dica flutuante, só com a lateral recolhida */
+  .dica { position: fixed; z-index: 3; pointer-events: none; padding: 5px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap;
+    background: rgba(250, 245, 240, .92); color: #2b2420; box-shadow: 0 6px 18px -6px rgba(0,0,0,.4);
+    opacity: 0; transform: translateX(-4px); transition: opacity .15s, transform .2s var(--suave); }
+  .dica.on { opacity: 1; transform: none; }
+  .dica kbd { font-size: 10px; font-family: inherit; margin-left: 6px; color: #8a7d74; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sb, .indicador, .rotulo, .nome, .filhos { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="sala"><div class="tv"></div><div class="prateleira"></div><div class="planta"></div></div>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <g id="i-painel" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/></g>
+    <g id="i-atividade" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/></g>
+    <g id="i-carteira" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="13" rx="2.2"/><path d="M15.5 12.5h5"/><path d="M6 6V5a1.5 1.5 0 0 1 1.5-1.5H17"/></g>
+    <g id="i-agenda" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></g>
+    <g id="i-mensagens" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.6-4.3a8.5 8.5 0 1 1 15.4-4.7Z"/></g>
+    <g id="i-projetos" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></g>
+    <g id="i-relatorios" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></g>
+    <g id="i-ajustes" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></g>
+    <g id="i-lua" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></g>
+    <g id="i-busca" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></g>
+  </defs></svg>
+
+  <aside class="sb" id="sb" aria-label="Navegação principal">
+    <div class="cabeca">
+      <div class="logo">V</div>
+      <div class="nome" style="--i:0"><b>Vertix</b><small>Espaço financeiro</small></div>
+      <button class="alternar" id="alternar" aria-label="Abrir a lateral" aria-expanded="false" data-dica="Abrir" data-tecla="⌘B">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="busca" data-dica="Buscar" data-tecla="⌘K"><svg viewBox="0 0 24 24" width="16" height="16"><use href="#i-busca"/></svg><span style="--i:1">Buscar páginas</span><kbd style="--i:1">⌘K</kbd></div>
+
+    <nav class="lista" id="lista">
+      <div class="secao">PRINCIPAL</div>
+      <button class="item ativo" data-dica="Painel"><svg viewBox="0 0 24 24"><use href="#i-painel"/></svg><span class="rotulo" style="--i:2">Painel</span></button>
+      <button class="item" data-dica="Atividade"><svg viewBox="0 0 24 24"><use href="#i-atividade"/></svg><span class="rotulo" style="--i:3">Atividade</span><span class="contador">12</span></button>
+      <button class="item" data-dica="Carteira"><svg viewBox="0 0 24 24"><use href="#i-carteira"/></svg><span class="rotulo" style="--i:4">Carteira</span></button>
+      <button class="item" data-dica="Agenda"><svg viewBox="0 0 24 24"><use href="#i-agenda"/></svg><span class="rotulo" style="--i:5">Agenda</span><span class="ponto"></span></button>
+      <div class="secao">ESPAÇO DE TRABALHO</div>
+      <button class="item" data-dica="Mensagens"><svg viewBox="0 0 24 24"><use href="#i-mensagens"/></svg><span class="rotulo" style="--i:6">Mensagens</span><span class="contador alerta">3</span></button>
+      <button class="item" data-dica="Projetos" aria-expanded="true" id="projetos"><svg viewBox="0 0 24 24"><use href="#i-projetos"/></svg><span class="rotulo" style="--i:7">Projetos</span>
+        <svg class="seta" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="--i:7"><path d="m6 15 6-6 6 6"/></svg></button>
+      <div class="filhos aberto" id="filhos"><div>
+        <div class="filho"><i style="background:#3fd68b"></i>Redesenho do site</div>
+        <div class="filho"><i style="background:#ff9a4a"></i>App para celular</div>
+        <div class="filho"><i style="background:#b688ff"></i>Kit da marca</div>
+      </div></div>
+      <button class="item" data-dica="Relatórios"><svg viewBox="0 0 24 24"><use href="#i-relatorios"/></svg><span class="rotulo" style="--i:8">Relatórios</span></button>
+      <button class="item" data-dica="Ajustes"><svg viewBox="0 0 24 24"><use href="#i-ajustes"/></svg><span class="rotulo" style="--i:9">Ajustes</span></button>
+    </nav>
+
+    <div class="pe">
+      <button class="item" id="noite" data-dica="Modo noturno" role="switch" aria-checked="false"><svg viewBox="0 0 24 24"><use href="#i-lua"/></svg><span class="rotulo" style="--i:10">Modo noturno</span><span class="chave"></span></button>
+      <div class="usuario"><span class="foto"></span><div class="rotulo" style="--i:11"><b>Alex Moreira</b><small>alex@vertix.io</small></div></div>
+    </div>
+  </aside>
+  <div class="dica" id="dica"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const sb = $('sb'), lista = $('lista');
+
+  // ---------------------------------------------------------------- abrir e recolher
+  function alternar(abrir = !sb.classList.contains('aberta')) {
+    sb.classList.toggle('aberta', abrir);
+    $('alternar').setAttribute('aria-expanded', String(abrir));
+    $('alternar').setAttribute('aria-label', abrir ? 'Recolher a lateral' : 'Abrir a lateral');
+    $('alternar').dataset.dica = abrir ? 'Recolher' : 'Abrir';
+    esconderDica();
+  }
+  $('alternar').onclick = () => alternar();
+  addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); alternar(); }
+  });
+
+  // ---------------------------------------------------------------- o indicador que escorrega
+  const ind = document.createElement('span');
+  ind.className = 'indicador';
+  lista.prepend(ind);
+  let posto = false;
+  function mover() {
+    const el = lista.querySelector('.item.ativo');
+    if (!el) return;
+    const pos = `translate(${el.offsetLeft}px, ${el.offsetTop}px)`;
+    if (!posto) ind.style.transition = 'none';
+    Object.assign(ind.style, { transform: pos, width: el.offsetWidth + 'px', height: el.offsetHeight + 'px' });
+    if (!posto) { ind.getBoundingClientRect(); ind.style.transition = ''; posto = true; }
+  }
+  // a lateral muda de largura com mola: o indicador acompanha quadro a quadro
+  new ResizeObserver(mover).observe(sb);
+  lista.addEventListener('click', (e) => {
+    const item = e.target.closest('.item');
+    if (!item) return;
+    if (item.id === 'projetos') {
+      const aberto = item.getAttribute('aria-expanded') !== 'true';
+      item.setAttribute('aria-expanded', String(aberto));
+      $('filhos').classList.toggle('aberto', aberto);
+      // a árvore abrindo empurra os itens de baixo: o indicador vai junto
+      const t0 = performance.now();
+      const seguir = (agora) => { mover(); if (agora - t0 < 400) requestAnimationFrame(seguir); };
+      requestAnimationFrame(seguir);
+      if (!sb.classList.contains('aberta')) alternar(true);
+      return;
+    }
+    lista.querySelectorAll('.item.ativo').forEach((x) => x.classList.remove('ativo'));
+    item.classList.add('ativo');
+    mover();
+  });
+
+  // ---------------------------------------------------------------- modo noturno
+  $('noite').onclick = () => {
+    const on = document.body.classList.toggle('noite');
+    $('noite').setAttribute('aria-checked', String(on));
+  };
+
+  // ---------------------------------------------------------------- dicas (só recolhida)
+  const dica = $('dica');
+  function mostrarDica(alvo) {
+    if (sb.classList.contains('aberta') || !alvo?.dataset.dica) return esconderDica();
+    const r = alvo.getBoundingClientRect();
+    dica.innerHTML = alvo.dataset.dica + (alvo.dataset.tecla ? `<kbd>${alvo.dataset.tecla}</kbd>` : '');
+    dica.style.left = sb.getBoundingClientRect().right + 10 + 'px';
+    dica.style.top = r.top + r.height / 2 - 13 + 'px';
+    dica.classList.add('on');
+  }
+  function esconderDica() { dica.classList.remove('on'); }
+  sb.addEventListener('pointerover', (e) => mostrarDica(e.target.closest('[data-dica]')));
+  sb.addEventListener('pointerleave', esconderDica);
+  sb.addEventListener('focusin', (e) => mostrarDica(e.target.closest('[data-dica]')));
+  sb.addEventListener('focusout', esconderDica);
+
+  mover();
+</script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Casa inteligente</title>
+<!--
+  EFEITO 03 — Painel de casa inteligente
+  Referência: "Smart home control Dashboard" (@_code_and_chill_), src/App.tsx:
+    // the panel keeps its wide box while its edge travels   → clip-path
+    // whatever moved up or down follows by y                → FLIP vertical
+    // labels: opacity 0, x -10 → 1, 0, stagger 0.012        → cascata
+
+  O que define o efeito:
+  - Abrir um grupo da lateral ("Cômodos") revela a sublista com um RECORTE que
+    desce — a caixa já tem o tamanho final, só a borda do clip-path viaja — e
+    os itens de baixo escorregam junto (FLIP), sem pulo.
+  - A página troca: o conteúdo some, o cômodo aparece ao fundo do painel, e a
+    página nova se monta com os rótulos entrando da esquerda, um a um.
+  - O mostrador do clima varre o arco e o número conta até a temperatura.
+
+  O que o Manus fez: um clip-path no conteúdo e cartões em cascata — a ideia
+  do recorte estava lá, aplicada no lugar errado e sem a lateral que abre.
+-->
+<style>
+  :root {
+    --fundo: #0b0f0d;
+    --placa: rgba(28, 36, 32, .74);
+    --cartao: rgba(255, 255, 255, .05);
+    --borda: rgba(255, 255, 255, .07);
+    --texto: #eef3ef;
+    --texto-2: rgba(238, 243, 239, .62);
+    --texto-3: rgba(238, 243, 239, .38);
+    --menta: #5fe0b0;
+    --suave: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--texto); overflow: hidden;
+    font: 13px/1.45 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    background: radial-gradient(60% 60% at 70% 0%, rgba(95, 224, 176, .08), transparent 70%), var(--fundo);
+  }
+  .app { display: grid; grid-template-columns: 210px 1fr; gap: 12px; height: 100%; padding: 14px; }
+  .lateral, .principal { border-radius: 20px; background: var(--placa); backdrop-filter: blur(22px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 24px 60px -30px rgba(0,0,0,.8); }
+
+  /* ---------------- lateral ---------------- */
+  .lateral { padding: 14px 10px; overflow: hidden; }
+  .marca { display: flex; align-items: center; gap: 9px; padding: 2px 8px 14px; }
+  .marca i { width: 28px; height: 28px; border-radius: 8px; background: var(--menta); }
+  .marca b { display: block; }
+  .marca small { color: var(--texto-3); font-size: 11px; }
+  .secao { padding: 10px 10px 4px; font-size: 9.5px; letter-spacing: .14em; color: var(--texto-3); }
+  .item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px;
+    background: none; color: var(--texto-2); font: inherit; text-align: left; cursor: pointer; transition: background .2s, color .2s; }
+  .item:hover { background: rgba(255,255,255,.04); color: var(--texto); }
+  .item.ativo { background: rgba(255,255,255,.08); color: var(--texto); box-shadow: inset 0 0 0 1px var(--borda); }
+  .item .seta { margin-left: auto; transition: transform .35s var(--suave); }
+  .item[aria-expanded="true"] .seta { transform: rotate(90deg); }
+  .item i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; }
+
+  /* a sublista: a caixa já tem a altura final, e o recorte é que desce */
+  .sub { overflow: hidden; height: 0; }
+  .sub .item { padding-left: 28px; font-size: 12.5px; }
+  .sub .item.ativo { color: var(--menta); background: none; box-shadow: none; }
+
+  /* ---------------- página ---------------- */
+  .principal { position: relative; overflow: hidden; }
+  .cenario { position: absolute; inset: 0; opacity: 0; transition: opacity .6s var(--suave); }
+  .cenario.on { opacity: 1; }
+  /* o cômodo, sem foto: parede, janelas, piso, sofá, planta — só gradiente */
+  .cenario::before { content: ''; position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, transparent 62%, #6d5a48 62%, #4a3b2e 100%),
+      linear-gradient(180deg, #ddd5c9, #c9bfb2); }
+  .janela { position: absolute; top: 14%; height: 44%; width: 15%; border: 5px solid #2a2622; border-radius: 3px;
+    background: linear-gradient(180deg, #b8c8b0, #8ea488 60%, #6f8a6b); box-shadow: inset 0 0 0 2px #2a2622; }
+  .janela::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 48%, #2a2622 48% 52%, transparent 52%), linear-gradient(180deg, transparent 48%, #2a2622 48% 52%, transparent 52%); }
+  .sofa { position: absolute; left: 24%; right: 30%; bottom: 20%; height: 18%; border-radius: 14px 14px 6px 6px; background: linear-gradient(180deg, #ebe4da, #cfc5b8); box-shadow: 0 20px 30px -10px rgba(0,0,0,.4); }
+  .arvore { position: absolute; right: 10%; bottom: 22%; width: 13%; height: 46%; border-radius: 50% 50% 40% 40%; background: radial-gradient(circle at 40% 35%, #8aa66a, #4d6a3a 70%); }
+  .cenario::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,15,13,.25), rgba(11,15,13,.65)); }
+
+  .pagina { position: relative; height: 100%; overflow: auto; padding: 20px 22px; }
+  .topo { display: flex; justify-content: space-between; align-items: center; color: var(--texto-3); margin-bottom: 6px; }
+  .topo .novo { background: var(--menta); color: #0b2a1f; border-radius: 999px; padding: 4px 12px; font-weight: 700; font-size: 12px; }
+  h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.02em; }
+  .resumo { color: var(--texto-2); max-width: 560px; margin: 0 0 16px; }
+  .grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .c { padding: 13px 14px; border-radius: 15px; background: var(--cartao); box-shadow: inset 0 0 0 1px var(--borda); backdrop-filter: blur(10px); }
+  .c small { color: var(--texto-3); display: block; }
+  .c b { font-size: 19px; }
+  .s2 { grid-column: span 2; } .s4 { grid-column: span 4; }
+  .cenas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+  .cenas span { padding: 9px 10px; border-radius: 11px; background: rgba(255,255,255,.04); color: var(--texto-2); font-size: 12px; }
+  .mostrador { display: grid; place-items: center; }
+  .mostrador svg { width: 150px; height: 150px; }
+  .arco { stroke-dasharray: 100; stroke-dashoffset: 100; }
+  .regua { height: 6px; border-radius: 6px; background: rgba(255,255,255,.1); margin-top: 10px; overflow: hidden; }
+  .regua i { display: block; height: 100%; background: var(--menta); border-radius: inherit; }
+  /* os rótulos da página nova chegam da esquerda */
+  .entra { opacity: 0; transform: translateX(-10px); }
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="lateral" id="lateral">
+      <div class="marca"><i></i><div><b>Halvo</b><small>Casa do Sul</small></div></div>
+      <div class="secao">CASA</div>
+      <button class="item ativo" data-pag="visao"><i></i>Visão geral</button>
+      <button class="item" id="comodos" aria-expanded="false"><i></i>Cômodos <span class="seta">›</span></button>
+      <div class="sub" id="sub">
+        <button class="item" data-pag="sala">Sala de estar</button>
+        <button class="item" data-pag="cozinha">Cozinha</button>
+        <button class="item" data-pag="quarto">Quarto</button>
+        <button class="item" data-pag="estudio">Estúdio</button>
+      </div>
+      <button class="item" data-pag="aparelhos"><i></i>Aparelhos</button>
+      <div class="secao">CONTROLES</div>
+      <button class="item" data-pag="clima"><i></i>Clima</button>
+      <button class="item" data-pag="energia"><i></i>Energia</button>
+      <button class="item" data-pag="seguranca"><i></i>Segurança</button>
+      <button class="item" data-pag="automacoes"><i></i>Automações</button>
+    </aside>
+
+    <main class="principal">
+      <div class="cenario" id="cenario">
+        <span class="janela" style="left:18%"></span><span class="janela" style="left:37%"></span><span class="janela" style="left:56%"></span>
+        <span class="sofa"></span><span class="arvore"></span>
+      </div>
+      <section class="pagina" id="pagina"></section>
+    </main>
+  </div>
+
+<script>
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const suave = 'cubic-bezier(.22,1,.36,1)';
+
+  // ---------------------------------------------------------------- páginas
+  const mostrador = (graus, rotulo) => `<div class="c mostrador"><small>${rotulo}</small>
+    <svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="2.4" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 21 21)"/>
+    <circle class="arco" data-para="${Math.round((graus - 10) / 20 * 75)}" cx="21" cy="21" r="15.9" fill="none" stroke="#5fe0b0" stroke-width="2.4" stroke-linecap="round" pathLength="100" transform="rotate(135 21 21)"/>
+    <text x="21" y="23.5" text-anchor="middle" fill="#eef3ef" font-size="7" font-weight="700" data-graus="${graus}">0°</text></svg></div>`;
+  const PAGINAS = {
+    visao: { cenario: false, html: () => `
+      <div class="topo"><span>Visão geral · quarta, 4 de novembro</span><span class="novo">+ Novo</span></div>
+      <h1>Boa noite, Amara</h1>
+      <p class="resumo">O aquecimento chegou a 21,5° às 22h. A lava-louça termina às 20h30, e a última porta trancou 74% do dia.</p>
+      <div class="grade">
+        <div class="c s2"><small>Cenas</small><div class="cenas"><span>Manhã tranquila</span><span>Foco</span><span>Noite de filme</span><span>Jantar</span><span>Fora de casa</span><span>Luzes apagadas</span></div></div>
+        ${mostrador(21.5, 'Aquecimento')}
+        <div class="c"><small>Umidade</small><b>46%</b><div class="regua"><i style="width:46%"></i></div></div>
+        <div class="c"><small>Consumo agora</small><b>1.478 W</b></div>
+        <div class="c"><small>Gerado hoje</small><b>15,8 kWh</b></div>
+        <div class="c"><small>Armazenado</small><b>11,7 kWh</b></div>
+        <div class="c"><small>Pessoas em casa</small><b>3</b></div>
+      </div>` },
+    sala: { cenario: true, html: () => `
+      <div class="topo"><span>Cômodos · Sala de estar</span><span class="novo">Tudo apagado</span></div>
+      <h1>Sala de estar</h1>
+      <p class="resumo">Térreo · 2 de 3 luzes acesas · 6 aparelhos consumindo 91 W</p>
+      <div class="grade" style="margin-top:150px">
+        <div class="c"><small>Temperatura</small><b>21°</b></div>
+        <div class="c"><small>Umidade</small><b>46%</b></div>
+        <div class="c"><small>CO₂</small><b>612 ppm</b></div>
+        <div class="c"><small>Ruído</small><b>38 dB</b></div>
+        <div class="c s2"><small>Luminária do piso</small><b>72%</b><div class="regua"><i style="width:72%"></i></div></div>
+        <div class="c s2"><small>Energia hoje</small><b>0,42 kWh</b></div>
+      </div>` },
+    clima: { cenario: false, html: () => `
+      <div class="topo"><span>Controles · Clima</span><span class="novo">+ Programar</span></div>
+      <h1>Clima</h1>
+      <p class="resumo">Aquecimento no automático. Mantém 21° de dia e 18° à noite.</p>
+      <div class="grade">
+        ${mostrador(21, 'Sala')}${mostrador(19, 'Quarto')}${mostrador(23, 'Estúdio')}${mostrador(12, 'Garagem')}
+        <div class="c s4"><small>Hoje</small><b>Pico de 1,2 kW às 7h20</b></div>
+      </div>` },
+  };
+  const generica = (titulo) => ({ cenario: /Cozinha|Quarto|Estúdio/.test(titulo), html: () => `
+    <div class="topo"><span>${titulo}</span><span class="novo">+ Novo</span></div><h1>${titulo}</h1>
+    <p class="resumo">Tudo sob controle por aqui.</p>
+    <div class="grade" style="${/Cozinha|Quarto|Estúdio/.test(titulo) ? 'margin-top:150px' : ''}"><div class="c"><small>Aparelhos</small><b>6</b></div><div class="c"><small>Ativos</small><b>2</b></div><div class="c s2"><small>Consumo</small><b>91 W</b></div></div>` });
+
+  // ---------------------------------------------------------------- troca de página
+  const pagina = document.getElementById('pagina'), cenario = document.getElementById('cenario');
+  let vez = 0;
+  async function ir(chave, titulo) {
+    const minha = ++vez;
+    const def = PAGINAS[chave] || generica(titulo);
+    if (!reduzido) {
+      await pagina.animate([{ opacity: 1 }, { opacity: 0, filter: 'blur(6px)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' }).finished;
+      if (minha !== vez) return;
+    }
+    cenario.classList.toggle('on', def.cenario);
+    pagina.innerHTML = def.html();
+    pagina.getAnimations().forEach((a) => a.cancel());
+    pagina.scrollTop = 0;
+    // os rótulos entram da esquerda, em cascata
+    const pecas = pagina.querySelectorAll('.topo, h1, .resumo, .c');
+    pecas.forEach((p, i) => {
+      if (reduzido) return;
+      p.animate([{ opacity: 0, transform: 'translateX(-10px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 450, delay: (def.cenario ? 260 : 0) + i * 35, easing: suave, fill: 'backwards' });
+    });
+    // o mostrador varre o arco e conta os graus
+    pagina.querySelectorAll('.arco').forEach((a) => {
+      a.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 100 - a.dataset.para }],
+        { duration: reduzido ? 0 : 1100, delay: 200, easing: suave, fill: 'forwards' });
+    });
+    pagina.querySelectorAll('[data-graus]').forEach((t) => {
+      const fim = +t.dataset.graus, casas = String(fim).includes('.') ? 1 : 0;
+      if (reduzido) return (t.textContent = fim.toLocaleString('pt-BR', { minimumFractionDigits: casas }) + '°');
+      const t0 = performance.now() + 200;
+      const passo = (agora) => {
+        const p = Math.max(0, Math.min(1, (agora - t0) / 1100));
+        t.textContent = (fim * (1 - Math.pow(1 - p, 4))).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) + '°';
+        if (p < 1) requestAnimationFrame(passo);
+      };
+      requestAnimationFrame(passo);
+    });
+  }
+
+  // ---------------------------------------------------------------- a sublista
+  // A caixa ganha a altura final de uma vez; o clip-path é que desce.
+  // Os itens de baixo escorregam junto (FLIP).
+  const lateral = document.getElementById('lateral'), sub = document.getElementById('sub'), comodos = document.getElementById('comodos');
+  function abrirSub(abrir) {
+    comodos.setAttribute('aria-expanded', String(abrir));
+    const abaixo = [...lateral.querySelectorAll('.item, .secao')]
+      .filter((el) => !sub.contains(el) && el.compareDocumentPosition(sub) & Node.DOCUMENT_POSITION_PRECEDING);
+    const alto = sub.scrollHeight;
+    const opcoes = { duration: 450, easing: suave };
+    sub.getAnimations().forEach((a) => a.cancel());
+    abaixo.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+
+    if (abrir) {
+      // a caixa já nasce com a altura final; os de baixo começam onde estavam
+      // (-alto) e escorregam para o lugar novo enquanto o recorte desce
+      sub.style.height = alto + 'px';
+      if (reduzido) return;
+      abaixo.forEach((el) => el.animate([{ transform: `translateY(${-alto}px)` }, { transform: 'none' }], opcoes));
+      sub.animate([{ clipPath: `inset(0 0 ${alto}px 0)` }, { clipPath: 'inset(0 0 0 0)' }], opcoes);
+    } else {
+      // fechando é o contrário: o recorte sobe, os de baixo sobem junto, e só
+      // no fim a caixa perde a altura — no mesmo quadro em que eles chegam
+      if (reduzido) { sub.style.height = '0px'; return; }
+      abaixo.forEach((el) => el.animate([{ transform: 'none' }, { transform: `translateY(${-alto}px)` }], { ...opcoes, fill: 'forwards' }));
+      sub.animate([{ clipPath: 'inset(0 0 0 0)' }, { clipPath: `inset(0 0 ${alto}px 0)` }], { ...opcoes, fill: 'forwards' }).onfinish = () => {
+        sub.style.height = '0px';
+        sub.getAnimations().forEach((a) => a.cancel());
+        abaixo.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+      };
+    }
+  }
+
+  lateral.addEventListener('click', (e) => {
+    const item = e.target.closest('.item');
+    if (!item) return;
+    if (item === comodos) {
+      const abrir = comodos.getAttribute('aria-expanded') !== 'true';
+      abrirSub(abrir);
+      if (abrir) item.parentElement.querySelector('[data-pag="sala"]').click();
+      return;
+    }
+    lateral.querySelectorAll('.item.ativo').forEach((x) => x.classList.remove('ativo'));
+    item.classList.add('ativo');
+    if (sub.contains(item)) comodos.classList.add('ativo');
+    ir(item.dataset.pag, item.textContent.trim());
+  });
+
+  ir('visao');
+</script>
+</body>
+</html>

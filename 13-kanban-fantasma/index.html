@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kanban com fantasma</title>
+<!--
+  EFEITO 13 — Kanban com cartão fantasma
+  Referência: "Admin Dashboard 🛒" (@_code_and_chill_), tela Orders → Packing board.
+
+  O que define o efeito:
+  - Ao arrastar, o cartão de verdade fica no lugar, apagado (vira a vaga), e uma
+    CÓPIA dele — o fantasma — segue o ponteiro, levemente maior e inclinada
+    (scale 1.04, rotate -2°), entrando com uma mola (back.out).
+  - A coluna embaixo do ponteiro acende. Quem decide é elementFromPoint, não os
+    eventos de drag do HTML5 — por isso funciona igual com mouse, caneta e dedo.
+  - Ao soltar, o fantasma voa até a vaga nova e só então o cartão real muda de
+    coluna. Os outros cartões abrem espaço deslizando (FLIP), sem pulo.
+
+  Por que não usar o drag-and-drop do HTML5 (como o Manus tentou): ele mostra a
+  imagem fantasma padrão do navegador, não funciona no toque e, dentro de um
+  motion.div do framer-motion, o onDragStart nem chega ao elemento — o arrasto
+  simplesmente não acontece.
+
+  Teclado: com um cartão focado, ← e → mudam de coluna.
+-->
+<style>
+  :root {
+    --fundo: #070b16;
+    --placa: rgba(17, 24, 41, .78);
+    --cartao: rgba(25, 34, 56, .9);
+    --borda: rgba(255, 255, 255, .07);
+    --texto: #e8ecf6;
+    --texto-2: rgba(232, 236, 246, .62);
+    --texto-3: rgba(232, 236, 246, .38);
+    --azul: #2f7bff;
+    --mola: cubic-bezier(.34, 1.56, .64, 1); /* o back.out(2) do vídeo */
+    --suave: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--fundo); color: var(--texto); overflow: hidden;
+    font: 13px/1.45 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* esferas de fundo, como as do vídeo */
+  .esfera { position: fixed; border-radius: 50%; pointer-events: none; z-index: 0; }
+  .e1 { width: 260px; height: 260px; right: 7%; top: -60px; background: radial-gradient(circle at 32% 30%, #ffd18a, #d58a28 45%, #6b3a0b 85%); box-shadow: 0 30px 80px -10px rgba(213, 138, 40, .45); }
+  .e2 { width: 420px; height: 420px; right: -120px; bottom: -150px; background: radial-gradient(circle at 30% 28%, #8ff7ff, #23c2cf 40%, #0b5560 85%); box-shadow: 0 40px 120px -20px rgba(35, 194, 207, .4); }
+  .e3 { width: 120px; height: 120px; left: 46%; bottom: 14%; background: radial-gradient(circle at 34% 30%, #9dffbd, #29c46a 45%, #0c4d27 90%); }
+  .e4 { width: 70px; height: 70px; left: 56%; bottom: 33%; background: radial-gradient(circle at 34% 30%, #ffffff, #b9c1cf 45%, #5a6272 95%); }
+  .e5 { width: 340px; height: 340px; left: -150px; bottom: -110px; background: radial-gradient(circle at 60% 30%, #5d8bff, #1d46c9 50%, #0a1a55 90%); }
+
+  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 210px 1fr; gap: 14px; height: 100%; padding: 16px; }
+  .lateral, .principal {
+    background: var(--placa); border-radius: 20px; backdrop-filter: blur(24px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 20px 50px -20px rgba(0, 0, 0, .7);
+  }
+  .lateral { padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .marca { display: flex; align-items: center; gap: 9px; padding: 4px 8px 14px; }
+  .marca i { width: 28px; height: 28px; border-radius: 8px; background: var(--azul); display: grid; place-items: center; font-style: normal; font-weight: 800; }
+  .marca b { display: block; font-size: 13.5px; }
+  .marca small { color: var(--texto-3); font-size: 11px; }
+  .secao { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--texto-3); padding: 12px 10px 4px; }
+  .item { padding: 7px 10px; border-radius: 9px; color: var(--texto-2); }
+  .item.ativo { background: var(--azul); color: #fff; }
+
+  .principal { padding: 22px 24px; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+  .topo small { color: var(--texto-3); }
+  h1 { font-size: 28px; margin: 4px 0 2px; letter-spacing: -.02em; }
+  .sub { color: var(--texto-2); margin: 0 0 16px; }
+  .abas { display: inline-flex; gap: 4px; margin-bottom: 14px; }
+  .abas span { padding: 6px 12px; border-radius: 999px; color: var(--texto-2); }
+  .abas span.ativo { background: rgba(255, 255, 255, .08); color: var(--texto); box-shadow: inset 0 0 0 1px var(--borda); }
+  .abas em { font-style: normal; color: var(--texto-3); margin-left: 4px; }
+
+  /* ---------------- colunas ---------------- */
+  .quadro { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 12px; flex: 1; min-height: 0; }
+  .coluna {
+    display: flex; flex-direction: column; gap: 9px; padding: 11px; border-radius: 16px; min-height: 0;
+    background: rgba(255, 255, 255, .025); box-shadow: inset 0 0 0 1px var(--borda);
+    transition: box-shadow .2s, background .2s;
+  }
+  /* a coluna embaixo do ponteiro acende */
+  .coluna.quente {
+    background: rgba(47, 123, 255, .07);
+    box-shadow: inset 0 0 0 1.5px rgba(47, 123, 255, .75), 0 0 0 4px rgba(47, 123, 255, .12), 0 0 30px -6px rgba(47, 123, 255, .5);
+  }
+  .coluna header { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+  .coluna header i { width: 7px; height: 7px; border-radius: 50%; }
+  .coluna header em { font-style: normal; font-weight: 500; color: var(--texto-3); background: rgba(255,255,255,.06); border-radius: 999px; padding: 0 7px; font-size: 11px; }
+  .coluna header + small { color: var(--texto-3); margin: -4px 0 4px; }
+  .lista { display: flex; flex-direction: column; gap: 9px; flex: 1; min-height: 60px; overflow: auto; }
+  .vazio { border: 1.5px dashed rgba(255,255,255,.1); border-radius: 12px; padding: 22px 8px; text-align: center; color: var(--texto-3); }
+  .lista:has(.cartao) .vazio { display: none; }
+
+  /* ---------------- cartões ---------------- */
+  .cartao {
+    position: relative; padding: 11px 12px; border-radius: 13px; background: var(--cartao);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 6px 14px -8px rgba(0,0,0,.6);
+    cursor: grab; user-select: none; touch-action: none;
+    transition: opacity .2s, filter .2s;
+  }
+  .cartao:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+  .cartao .l1 { display: flex; justify-content: space-between; color: var(--texto-3); font-size: 11px; }
+  .cartao .l1 b { color: var(--texto); font-size: 12px; }
+  .cartao .nome { display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; font-weight: 600; }
+  .cartao .nome i { width: 22px; height: 22px; border-radius: 50%; font-style: normal; font-size: 10px; display: grid; place-items: center; }
+  .cartao .linha { color: var(--texto-2); font-size: 11.5px; }
+  .cartao .rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
+  .cartao .rodape span { font-size: 10.5px; color: var(--texto-3); background: rgba(255,255,255,.05); border-radius: 6px; padding: 2px 7px; }
+  /* o cartão de verdade, enquanto o fantasma passeia: vira a vaga */
+  .cartao.vaga { opacity: .28; filter: saturate(.3); }
+
+  /* o fantasma: cópia que segue o ponteiro, por cima de tudo */
+  .fantasma {
+    position: fixed; z-index: 1000; margin: 0; pointer-events: none; cursor: grabbing;
+    box-shadow: 0 24px 50px -12px rgba(0, 0, 0, .75), inset 0 0 0 1px rgba(47, 123, 255, .5);
+  }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    .lateral { display: none; }
+    .quadro { grid-template-columns: repeat(4, 220px); overflow-x: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cartao, .coluna { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="esfera e5"></div><div class="esfera e1"></div><div class="esfera e2"></div><div class="esfera e3"></div><div class="esfera e4"></div>
+
+  <div class="app">
+    <aside class="lateral">
+      <div class="marca"><i>C</i><div><b>Cirrel</b><small>Kits &amp; Leaf</small></div></div>
+      <div class="secao">Loja</div>
+      <div class="item">Dashboard</div><div class="item ativo">Orders</div><div class="item">Products</div><div class="item">Analytics</div><div class="item">Customers</div>
+      <div class="secao">Dinheiro</div>
+      <div class="item">Finances</div><div class="item">Invoices</div>
+    </aside>
+
+    <main class="principal">
+      <div class="topo"><small>Good morning, Noor · Orders · Packing board</small></div>
+      <h1>Orders</h1>
+      <p class="sub">Arraste um pedido para outra coluna — ou foque e use ← →.</p>
+      <div class="abas"><span>All orders</span><span class="ativo">Packing board <em>12</em></span><span>Returns <em>3</em></span></div>
+
+      <section class="quadro" id="quadro">
+        <div class="coluna" data-col="pack"><header><i style="background:#ffb547"></i>To pack <em>0</em></header><small>Paid, waiting for hands</small><div class="lista"><div class="vazio">Drop an order here</div></div></div>
+        <div class="coluna" data-col="packed"><header><i style="background:#5b9bff"></i>Packed <em>0</em></header><small>Boxed, label printed</small><div class="lista"><div class="vazio">Drop an order here</div></div></div>
+        <div class="coluna" data-col="shipped"><header><i style="background:#b688ff"></i>Shipped <em>0</em></header><small>With the carrier</small><div class="lista"><div class="vazio">Drop an order here</div></div></div>
+        <div class="coluna" data-col="delivered"><header><i style="background:#3fd68b"></i>Delivered <em>0</em></header><small>Since yesterday</small><div class="lista"><div class="vazio">Drop an order here</div></div></div>
+      </section>
+    </main>
+  </div>
+
+<script>
+  // ---------------------------------------------------------------- dados de exemplo
+  const PEDIDOS = [
+    ['KL-49959', 'Sofia Moreno', '#ffb547', 'In Morning Service', '$37.50', 'pack'],
+    ['KL-49958', 'Yara Moreno', '#ff7aa2', 'Drizzling Cups, set of 4', '$62.00', 'pack'],
+    ['KL-49957', 'June Patil', '#5b9bff', 'In Twisted Gemstones', '$41.90', 'pack'],
+    ['KL-49948', 'Theo Novak', '#3fd68b', 'In Garden Gilding', '$93.00', 'packed'],
+    ['KL-49945', 'Amara Nguyen', '#b688ff', 'In Lake Glass Chair', '$22.50', 'packed'],
+    ['KL-49946', 'Esme Haddad', '#ffb547', 'Grasping Tarot Pack', '$54.10', 'shipped'],
+    ['KL-49941', 'Jonah Brennan', '#5b9bff', '2× Air Ghost Pots', '$208.00', 'shipped'],
+  ];
+  const quadro = document.getElementById('quadro');
+  const lista = (col) => quadro.querySelector(`[data-col="${col}"] .lista`);
+  for (const [id, nome, cor, linha, valor, col] of PEDIDOS) {
+    const c = document.createElement('article');
+    c.className = 'cartao';
+    c.tabIndex = 0;
+    c.innerHTML = `<div class="l1"><b>${id}</b><span>2h ago</span></div>
+      <div class="nome"><i style="background:${cor}33;color:${cor}">${nome[0]}</i>${nome}</div>
+      <div class="linha">${linha}</div>
+      <div class="rodape"><b>${valor}</b><span>Web store</span></div>`;
+    lista(col).appendChild(c);
+  }
+  const contar = () => quadro.querySelectorAll('.coluna').forEach((col) => {
+    col.querySelector('header em').textContent = col.querySelectorAll('.cartao').length;
+  });
+  contar();
+
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------------------------------------------------------------- FLIP
+  // Antes de mudar o DOM, guarda onde cada cartão estava; depois, anima de lá
+  // até o lugar novo. É o que faz os vizinhos "abrirem espaço" sem pulo.
+  function flip(mudar) {
+    const antes = new Map([...quadro.querySelectorAll('.cartao')].map((c) => [c, c.getBoundingClientRect()]));
+    mudar();
+    if (reduzido) return;
+    for (const [c, r] of antes) {
+      const d = c.getBoundingClientRect();
+      const dx = r.left - d.left, dy = r.top - d.top;
+      if (!dx && !dy) continue;
+      c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.22,1,.36,1)' });
+    }
+  }
+
+  // ---------------------------------------------------------------- arrastar
+  let arrasto = null;
+
+  quadro.addEventListener('pointerdown', (ev) => {
+    const cartao = ev.target.closest('.cartao');
+    if (!cartao || ev.button !== 0) return;
+    arrasto = { cartao, x0: ev.clientX, y0: ev.clientY, ligado: false, sobre: null, id: ev.pointerId };
+    try { cartao.setPointerCapture(ev.pointerId); } catch {} // ponteiro sintético não captura
+  });
+
+  quadro.addEventListener('pointermove', (ev) => {
+    if (!arrasto || ev.pointerId !== arrasto.id) return;
+    const dx = ev.clientX - arrasto.x0, dy = ev.clientY - arrasto.y0;
+    if (!arrasto.ligado) {
+      // até 6 px é só um clique tremido, não um arrasto
+      if (Math.hypot(dx, dy) < 6) return;
+      comecar();
+    }
+    arrasto.fantasma.style.transform = `translate(${dx}px, ${dy}px) rotate(-2deg) scale(1.04)`;
+    // quem está embaixo do ponteiro? (o fantasma tem pointer-events: none)
+    const coluna = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.coluna') || null;
+    if (coluna !== arrasto.sobre) {
+      arrasto.sobre?.classList.remove('quente');
+      coluna?.classList.add('quente');
+      arrasto.sobre = coluna;
+    }
+  });
+
+  function comecar() {
+    const { cartao } = arrasto;
+    const r = cartao.getBoundingClientRect();
+    const f = cartao.cloneNode(true);
+    f.classList.add('fantasma');
+    f.removeAttribute('tabindex');
+    Object.assign(f.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px' });
+    document.body.appendChild(f);
+    // a entrada com mola: sai do tamanho normal e "pula" para a mão
+    if (!reduzido) {
+      f.animate(
+        [{ transform: 'translate(0,0) rotate(0) scale(1)' }, { transform: 'translate(0,0) rotate(-2deg) scale(1.04)' }],
+        { duration: 250, easing: 'cubic-bezier(.34,1.56,.64,1)' },
+      );
+    }
+    cartao.classList.add('vaga');
+    arrasto.fantasma = f;
+    arrasto.ligado = true;
+    document.body.style.cursor = 'grabbing';
+  }
+
+  function terminar(ev, cancelado = false) {
+    if (!arrasto) return;
+    const { cartao, fantasma, ligado, sobre } = arrasto;
+    arrasto = null;
+    document.body.style.cursor = '';
+    if (!ligado) return; // foi só um clique
+    sobre?.classList.remove('quente');
+
+    const destino = !cancelado && sobre ? sobre.querySelector('.lista') : null;
+    const mudou = destino && destino !== cartao.parentElement;
+    if (mudou) flip(() => { destino.appendChild(cartao); contar(); });
+
+    // o fantasma voa até onde o cartão ficou (na coluna nova, ou de volta)
+    const alvo = cartao.getBoundingClientRect();
+    const voo = reduzido ? null : fantasma.animate(
+      [
+        { transform: getComputedStyle(fantasma).transform },
+        { transform: `translate(${alvo.left - parseFloat(fantasma.style.left)}px, ${alvo.top - parseFloat(fantasma.style.top)}px) rotate(0) scale(1)` },
+      ],
+      { duration: 320, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'forwards' },
+    );
+    const fim = () => { fantasma.remove(); cartao.classList.remove('vaga'); };
+    voo ? (voo.onfinish = fim) : fim();
+  }
+
+  quadro.addEventListener('pointerup', (ev) => terminar(ev));
+  quadro.addEventListener('pointercancel', (ev) => terminar(ev, true));
+  addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && arrasto) terminar(ev, true); });
+
+  // ---------------------------------------------------------------- teclado
+  // ← → levam o cartão focado para a coluna vizinha.
+  quadro.addEventListener('keydown', (ev) => {
+    const cartao = ev.target.closest?.('.cartao');
+    if (!cartao || (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight')) return;
+    ev.preventDefault();
+    const colunas = [...quadro.querySelectorAll('.coluna')];
+    const i = colunas.indexOf(cartao.closest('.coluna'));
+    const j = Math.max(0, Math.min(colunas.length - 1, i + (ev.key === 'ArrowRight' ? 1 : -1)));
+    if (i === j) return;
+    flip(() => { colunas[j].querySelector('.lista').appendChild(cartao); contar(); });
+    cartao.focus();
+  });
+</script>
+</body>
+</html>

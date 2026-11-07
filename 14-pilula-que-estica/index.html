@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pílula que estica</title>
+<!--
+  EFEITO 14 — Pílula de navegação que estica
+  Referência: "Sales CRM dashboard" (@_code_and_chill_), arquivo src/ui.ts.
+
+  O que define o efeito: a pílula do item ativo NÃO desliza inteira. Cada borda
+  anda sozinha — a da frente vai primeiro e mais rápido (0,34 s), a de trás sai
+  depois e alcança (0,55 s). No meio do caminho a pílula fica comprida, cobrindo
+  os dois itens, e encolhe ao chegar: parece uma gota de tinta escorrendo.
+
+  Como é feito: a pílula é uma camada do tamanho da barra inteira, recortada com
+  clip-path: inset(T R B L round 999px). Animar o L e o R separados, com tempos
+  diferentes, é o que dá o estica-e-encolhe. Sem biblioteca: um tween de 20
+  linhas com as mesmas curvas do GSAP (power3.out e power3.inOut).
+
+  O Manus leu "pill-shaped wipe" e aplicou o recorte na PÁGINA. O recorte é da
+  PÍLULA do menu.
+-->
+<style>
+  :root {
+    --fundo: #0e1311;
+    --placa: rgba(30, 38, 35, .72);
+    --texto: #e9efe9;
+    --texto-2: rgba(233, 239, 233, .62);
+    --texto-3: rgba(233, 239, 233, .38);
+    --verde: #c6f24e;
+    --borda: rgba(255, 255, 255, .07);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    color: var(--texto); font: 13px/1.45 "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; padding: 18px;
+    background:
+      radial-gradient(60% 50% at 80% 0%, rgba(198, 242, 78, .08), transparent 70%),
+      radial-gradient(70% 60% at 10% 100%, rgba(80, 120, 100, .25), transparent 70%),
+      var(--fundo);
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 1180px; margin: 0 auto; border-radius: 22px; overflow: hidden;
+    background: var(--placa); backdrop-filter: blur(24px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 30px 70px -30px rgba(0,0,0,.8);
+  }
+  .topo { display: flex; align-items: center; gap: 18px; padding: 14px 18px; }
+  .marca { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 15px; }
+  .marca i { width: 28px; height: 28px; border-radius: 9px; background: var(--verde); }
+  .acoes { margin-left: auto; display: flex; gap: 8px; }
+  .acoes span { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px var(--borda); }
+  .acoes span:last-child { background: #e7f7b4; color: #1d2410; display: grid; place-items: center; font-weight: 700; font-size: 11px; }
+
+  /* ---------------- a barra e a pílula ---------------- */
+  .nav {
+    position: relative; display: flex; gap: 2px; padding: 4px; margin: 0 auto;
+    border-radius: 999px; background: rgba(0, 0, 0, .25); box-shadow: inset 0 0 0 1px var(--borda);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  /* a pílula ocupa a barra inteira; o clip-path é que mostra só o pedaço ativo */
+  .pilula {
+    position: absolute; inset: 0; pointer-events: none; border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+    clip-path: inset(0 100% 0 0 round 999px);
+  }
+  .nav button {
+    position: relative; z-index: 1; border: 0; background: none; cursor: pointer; white-space: nowrap;
+    padding: 7px 14px; border-radius: 999px; color: var(--texto-2);
+    font-family: inherit; font-weight: 500; font-size: 12.5px; transition: color .3s;
+  }
+  .nav button:hover { color: var(--texto); }
+  .nav button[aria-current="page"] { color: var(--texto); }
+  .nav button:focus-visible { outline: 2px solid var(--verde); outline-offset: -2px; }
+
+  /* ---------------- a página ---------------- */
+  .pagina { padding: 18px 22px 24px; }
+  .pagina.saindo { filter: blur(12px); opacity: 0; transition: filter .22s, opacity .22s; }
+  .pagina.entrando { animation: entra .5s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes entra { from { filter: blur(12px); opacity: 0; transform: translateY(6px); } to { filter: none; opacity: 1; transform: none; } }
+  h1 { margin: 0 0 16px; font-size: 26px; line-height: 1.05; letter-spacing: -.02em; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .kpi { padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px var(--borda); }
+  .kpi small { color: var(--texto-3); }
+  .kpi b { display: block; font-size: 22px; margin-top: 6px; letter-spacing: -.01em; }
+  .kpi em { font-style: normal; font-size: 11px; color: #ff9b85; background: rgba(255,120,90,.12); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+  .kpi em.sobe { color: var(--verde); background: rgba(198,242,78,.12); }
+  .grafico { height: 180px; border-radius: 16px; background: rgba(255,255,255,.035); box-shadow: inset 0 0 0 1px var(--borda); display: flex; align-items: flex-end; gap: 10px; padding: 18px; }
+  .grafico i { flex: 1; border-radius: 8px 8px 4px 4px; background: linear-gradient(180deg, var(--verde), rgba(198,242,78,.25)); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pagina.saindo, .pagina.entrando { animation: none; transition: none; filter: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="topo">
+      <div class="marca"><i></i>solvik</div>
+      <nav class="nav" id="nav" aria-label="Seções">
+        <span class="pilula" id="pilula" aria-hidden="true"></span>
+        <button aria-current="page">Overview</button>
+        <button>Pipeline</button>
+        <button>Customers</button>
+        <button>Schedule</button>
+        <button>Finance</button>
+        <button>Growth</button>
+        <button>Projects</button>
+      </nav>
+      <div class="acoes"><span></span><span></span><span>IV</span></div>
+    </header>
+    <main class="pagina" id="pagina"></main>
+  </div>
+
+<script>
+  // ---------------------------------------------------------------- tween mínimo
+  // As mesmas curvas do GSAP, para o movimento sair igual ao do vídeo.
+  const CURVAS = {
+    'power3.out': (t) => 1 - Math.pow(1 - t, 3),
+    'power3.inOut': (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  };
+  function tween(obj, chave, alvo, duracao, curva, aoMudar) {
+    const de = obj[chave];
+    const t0 = performance.now();
+    obj._fios = obj._fios || {};
+    const meu = (obj._fios[chave] = Symbol()); // um tween novo na mesma chave cancela o anterior
+    return new Promise((fim) => {
+      const passo = (agora) => {
+        if (obj._fios[chave] !== meu) return fim();
+        const p = Math.min(1, (agora - t0) / (duracao * 1000));
+        obj[chave] = de + (alvo - de) * CURVAS[curva](p);
+        aoMudar();
+        p < 1 ? requestAnimationFrame(passo) : fim();
+      };
+      requestAnimationFrame(passo);
+    });
+  }
+
+  // ---------------------------------------------------------------- a pílula
+  const nav = document.getElementById('nav');
+  const pilula = document.getElementById('pilula');
+  const botoes = [...nav.querySelectorAll('button')];
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const borda = { l: 0, r: 0 }; // as duas bordas da pílula, em px a partir das laterais da barra
+
+  // medidas do botão alvo dentro da barra (a barra pode rolar: usa scrollWidth)
+  function medidas(alvo) {
+    const W = nav.scrollWidth, H = nav.offsetHeight;
+    return {
+      L: alvo.offsetLeft,
+      R: W - (alvo.offsetLeft + alvo.offsetWidth),
+      T: alvo.offsetTop,
+      B: H - (alvo.offsetTop + alvo.offsetHeight),
+    };
+  }
+  let topo = 0, fundo = 0;
+  const desenhar = () => {
+    pilula.style.width = nav.scrollWidth + 'px'; // a camada cobre a barra inteira, mesmo rolada
+    pilula.style.clipPath = `inset(${topo}px ${borda.r}px ${fundo}px ${borda.l}px round 999px)`;
+  };
+
+  function ir(alvo, animar = true) {
+    const m = medidas(alvo);
+    topo = m.T; fundo = m.B;
+    if (!animar || reduzido) {
+      borda.l = m.L; borda.r = m.R; desenhar();
+      return;
+    }
+    const praDireita = m.L > borda.l;
+    // a borda da frente vai primeiro e mais rápido; a de trás alcança
+    tween(borda, 'l', m.L, praDireita ? 0.55 : 0.34, praDireita ? 'power3.inOut' : 'power3.out', desenhar);
+    tween(borda, 'r', m.R, praDireita ? 0.34 : 0.55, praDireita ? 'power3.out' : 'power3.inOut', desenhar);
+  }
+
+  // ---------------------------------------------------------------- páginas
+  const PAGINAS = {
+    Overview: ['Sales<br>Overview', [['Won this month', '$100,040', '-2% vs last month'], ['Pipeline value', '$1,421,296'], ['Win rate', '65%', '+4 pts', 1]]],
+    Pipeline: ['Deal<br>Pipeline', [['Qualified', '$298,410'], ['Proposal', '$420,180', '+12%', 1], ['Negotiation', '$312,900']]],
+    Customers: ['Customer<br>Directory', [['Active', '1,284', '+38', 1], ['At risk', '42', '+6'], ['NPS', '61']]],
+    Schedule: ['This<br>Week', [['Meetings', '23'], ['Demos', '9', '+3', 1], ['Follow-ups', '31']]],
+    Finance: ['Revenue<br>Ledger', [['MRR', '$84,210', '+6%', 1], ['Churn', '1.8%'], ['ARPA', '$412']]],
+    Growth: ['Growth<br>Reports', [['New customers', '14', '+5', 1], ['Expansion', '$22,841'], ['Retention', '94%']]],
+    Projects: ['Active<br>Projects', [['In flight', '18'], ['Due this week', '5'], ['On track', '83%', '+7 pts', 1]]],
+  };
+  const pagina = document.getElementById('pagina');
+  function pintar(nome) {
+    const [titulo, kpis] = PAGINAS[nome];
+    const barras = Array.from({ length: 12 }, (_, i) => 25 + ((nome.length * 37 + i * 53) % 70));
+    pagina.innerHTML = `<h1>${titulo}</h1>
+      <div class="kpis">${kpis.map(([r, v, d, sobe]) => `<div class="kpi"><small>${r}</small><b>${v}${d ? `<em class="${sobe ? 'sobe' : ''}">${d}</em>` : ''}</b></div>`).join('')}</div>
+      <div class="grafico">${barras.map((h) => `<i style="height:${h}%"></i>`).join('')}</div>`;
+  }
+
+  let trocando = 0;
+  async function trocar(nome) {
+    const vez = ++trocando;
+    if (!reduzido) {
+      pagina.classList.add('saindo');
+      await new Promise((r) => setTimeout(r, 220));
+      if (vez !== trocando) return;
+    }
+    pagina.classList.remove('saindo', 'entrando');
+    pintar(nome);
+    void pagina.offsetWidth;
+    pagina.classList.add('entrando');
+  }
+
+  nav.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.getAttribute('aria-current') === 'page') return;
+    botoes.forEach((x) => x.removeAttribute('aria-current'));
+    b.setAttribute('aria-current', 'page');
+    ir(b);
+    trocar(b.textContent);
+  });
+
+  // setas também andam pela barra
+  nav.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = botoes.findIndex((b) => b === document.activeElement);
+    const j = (i + (e.key === 'ArrowRight' ? 1 : -1) + botoes.length) % botoes.length;
+    botoes[j].focus();
+    botoes[j].click();
+  });
+
+  addEventListener('resize', () => ir(nav.querySelector('[aria-current="page"]'), false));
+  pintar('Overview');
+  document.fonts?.ready.then(() => ir(botoes[0], false));
+  ir(botoes[0], false);
+</script>
+</body>
+</html>
