@@ -11,6 +11,26 @@ não tem `npm install`, não tem build, não tem nada baixado da internet quando
 e JavaScript puros — funciona abrindo o arquivo direto, dentro de um site, de um Electron ou de
 uma extensão de navegador.
 
+## Antes de publicar: gerar as prévias
+
+A loja não aponta mais para as pastas dos efeitos. Ela mostra o que está em `previas/`,
+que é gerado a partir delas — sem comentários, com marca d'água e embaralhado, para o
+código que se vende não ficar à mão de quem não comprou.
+
+```
+node ferramentas/gerar-previas.mjs
+```
+
+Rode isso **toda vez que mexer num efeito**, antes do commit. Sem isso o site continua
+mostrando a versão anterior. As pastas `01-` a `14-`, o `LEIAME.md` e o `catalogo.html`
+ficam de fora do deploy pelo `.vercelignore`.
+
+Para ver a loja localmente (o `fetch` das prévias não funciona abrindo o arquivo direto):
+
+```
+node servidor-local.mjs .
+```
+
 ## O que tem dentro de cada arquivo
 
 O comentário no topo de cada `index.html` diz quatro coisas:

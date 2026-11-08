@@ -452,13 +452,33 @@
   .modal-topo small{display:block;font-size:11px;color:var(--texto-3);margin-top:2px}
   .modal-fechar{margin-left:auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--texto-2);box-shadow:inset 0 0 0 1px var(--linha);transition:color .25s,background .25s}
   .modal-fechar:hover{color:var(--texto);background:rgba(255,255,255,.07)}
-  .modal-tela{flex:1;min-height:0;background:#0d0d0e}
-  .modal-tela iframe{width:100%;height:100%;background:#0d0d0e}
+  /* O efeito é desenhado para 1280×860. Dar ao iframe a largura real do
+     aparelho quebraria a tela (num celular ele abre vazio ou esmagado),
+     então o palco mantém o tamanho de projeto e só é escalado para caber. */
+  .modal-tela{position:relative;flex:1;min-height:0;background:#0d0d0e;overflow:hidden;touch-action:none}
+  .modal-palco{position:absolute;top:0;left:0;width:1280px;height:860px;transform-origin:0 0;will-change:transform}
+  .modal-palco iframe{width:1280px;height:860px;background:#0d0d0e}
+  /* ao ampliar, o véu assume o arrasto — senão o iframe engole o gesto */
+  .modal-veu{position:absolute;inset:0;z-index:4;cursor:grab}
+  .modal-veu.arrastando{cursor:grabbing}
+  .modal-zoom{
+    position:absolute;z-index:6;left:12px;bottom:12px;display:flex;align-items:center;gap:2px;padding:4px;
+    border-radius:999px;background:rgba(10,8,7,.82);backdrop-filter:blur(10px);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);
+  }
+  .modal-zoom button{
+    min-width:32px;height:28px;padding:0 10px;border-radius:999px;font-size:12.5px;line-height:1;
+    color:var(--texto-2);transition:color .2s,background .2s;
+  }
+  .modal-zoom button:hover{color:var(--texto);background:rgba(255,255,255,.09)}
+  .modal-zoom button[disabled]{opacity:.35;cursor:default}
+  .modal-modo{
+    position:absolute;z-index:6;right:12px;bottom:12px;margin:0;max-width:52%;text-align:right;
+    font-size:11px;line-height:1.4;color:var(--texto-3);pointer-events:none;
+  }
   .modal-pe{display:flex;align-items:center;gap:16px;padding:13px 16px;border-top:1px solid var(--linha);flex:none;flex-wrap:wrap}
   .modal-pe .preco b{font-size:21px}
   .modal-pe .btn-pequeno{margin-left:auto}
-  .modal-pe .link-abrir{font-size:12px;color:var(--texto-3);text-decoration:underline;text-underline-offset:3px}
-  .modal-pe .link-abrir:hover{color:var(--texto-2)}
 
   /* ------------------------------------------------ rodapé */
   .rodape{border-top:1px solid var(--linha);padding:clamp(44px,6vw,70px) 0 34px;background:#050403}
@@ -536,7 +556,23 @@
     .modal-painel{width:100%;height:100dvh;max-height:100dvh;border-radius:0}
     .modal-topo{padding:12px 14px}
     .modal-pe{padding:10px 14px}
+    .modal-zoom button{min-width:40px;height:34px;font-size:13px}
+    .modal-modo{font-size:10.5px;max-width:46%}
     .selo-desconto{width:66px;height:66px;font-size:17px;right:-6px}
+  }
+  /* celular deitado: o cabeçalho e o rodapé flutuam para o efeito ganhar
+     a altura inteira — é o que mais aumenta a escala da prévia */
+  @media (max-height:520px) and (orientation:landscape){
+    .modal{padding:0;place-items:stretch}
+    .modal-painel{width:100%;height:100dvh;max-height:100dvh;border-radius:0;position:relative}
+    .modal-topo,.modal-pe{position:absolute;left:0;right:0;z-index:7;border:0;background:rgba(10,8,7,.84);backdrop-filter:blur(12px)}
+    .modal-topo{top:0;padding:8px 12px}
+    .modal-pe{bottom:0;padding:7px 12px;gap:12px}
+    .modal-pe .preco small{display:none}
+    .modal-pe .preco b{font-size:17px}
+    .modal-tela{position:absolute;inset:0}
+    .modal-zoom{bottom:auto;top:50px}
+    .modal-modo{display:none}
   }
   @media (max-width:520px){
     .nav{gap:10px;padding:13px 15px}
@@ -641,7 +677,7 @@
         <div class="hero-vitrine sobe" style="--d:380ms">
           <div class="moldura">
             <div class="espelho" data-abrir="05" id="espelhoHero">
-              <iframe data-src="05-painel-panoramico/index.html" title="Prévia ao vivo do efeito Painel panorâmico" loading="lazy"></iframe>
+              <iframe data-src="previas/visor.html?e=05" title="Prévia ao vivo do efeito Painel panorâmico" loading="lazy"></iframe>
             </div>
             <div class="etiqueta-demo"><i></i><b>ao vivo</b><span>· mexa nesta prévia</span></div>
           </div>
@@ -843,11 +879,11 @@
         </ul>
       </div>
       <div>
-        <h4>Técnico</h4>
+        <h4>O que você recebe</h4>
         <ul>
-          <li><a href="catalogo.html">Catálogo dos efeitos</a></li>
-          <li><a href="LEIAME.md">Como cada efeito foi feito</a></li>
-          <li><a href="09-vidro-espacial/ESTILO.md">Ficha do estilo completo</a></li>
+          <li><a href="#duvidas">Formato dos arquivos</a></li>
+          <li><a href="#duvidas">Funciona com React?</a></li>
+          <li><a href="#duvidas">Uso em projeto de cliente</a></li>
         </ul>
       </div>
     </div>
@@ -884,10 +920,20 @@
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
-    <div class="modal-tela"><iframe title="Prévia do efeito em tela cheia" id="modalIframe"></iframe></div>
+    <div class="modal-tela" id="modalTela">
+      <div class="modal-palco" id="modalPalco">
+        <iframe title="Prévia do efeito em tela cheia" id="modalIframe" scrolling="no"></iframe>
+      </div>
+      <div class="modal-veu" id="modalVeu" hidden></div>
+      <div class="modal-zoom" aria-label="Zoom da prévia">
+        <button data-zoom="menos" aria-label="Diminuir">−</button>
+        <button data-zoom="ajustar">ajustar</button>
+        <button data-zoom="mais" aria-label="Aumentar">+</button>
+      </div>
+      <p class="modal-modo" id="modalModo"></p>
+    </div>
     <div class="modal-pe">
       <div class="preco"><small>efeito avulso</small><b>R$ 7,90</b></div>
-      <a class="link-abrir" id="modalLink" href="#" target="_blank" rel="noopener">abrir em nova aba</a>
       <button class="btn btn-primario btn-pequeno" id="modalComprar">Quero este</button>
     </div>
   </div>
@@ -995,7 +1041,7 @@ grade.innerHTML = EFEITOS.map((e, i) => `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 4H4v5M15 4h5v5M15 20h5v-5M9 20H4v-5"/></svg>
       </button>
       <div class="espelho" data-abrir="${e.n}">
-        <iframe data-src="${e.pasta}/index.html" title="Prévia ao vivo do efeito ${e.nome}" loading="lazy"></iframe>
+        <iframe data-src="previas/visor.html?e=${e.n}" title="Prévia ao vivo do efeito ${e.nome}" loading="lazy"></iframe>
       </div>
       <span class="previa-dica"><em class="dica-mouse">mexa com o mouse · clique · arraste</em><em class="dica-toque">toque para abrir em tela cheia</em></span>
     </div>
@@ -1160,10 +1206,130 @@ const modalIframe = document.getElementById('modalIframe');
 const modalNum = document.getElementById('modalNum');
 const modalTitulo = document.getElementById('modalTitulo');
 const modalTec = document.getElementById('modalTec');
-const modalLink = document.getElementById('modalLink');
 const modalComprar = document.getElementById('modalComprar');
+const modalTela = document.getElementById('modalTela');
+const modalPalco = document.getElementById('modalPalco');
+const modalVeu = document.getElementById('modalVeu');
+const modalModo = document.getElementById('modalModo');
+const botoesZoom = [...document.querySelectorAll('[data-zoom]')];
+const btnMenos = botoesZoom.find(b => b.dataset.zoom === 'menos');
+const btnMais = botoesZoom.find(b => b.dataset.zoom === 'mais');
+const ZOOM_MAX = 2.4;
 let focoAnterior = null;
 let efeitoAberto = null;
+
+/* ------------------------------------------------ palco do modal
+   O efeito tem tamanho de projeto (1280×860) e não encolhe sozinho:
+   num celular, entregar a largura real do aparelho ao iframe abre a
+   tela vazia ou esmagada. Então o palco nunca muda de tamanho — muda
+   só a escala, e o que não couber vira zoom com arrasto. */
+let kCabe = 1, kAtual = 1, palcoX = 0, palcoY = 0;
+
+const retrato = () => innerWidth <= 640 && innerHeight > innerWidth;
+
+function pintarPalco(){
+  modalPalco.style.transform = `translate(${palcoX}px,${palcoY}px) scale(${kAtual})`;
+  const ampliado = kAtual > kCabe + .001;
+  modalVeu.hidden = !ampliado;
+  modalModo.textContent = ampliado
+    ? 'arraste para percorrer · toque em “ajustar” para voltar a usar o efeito'
+    : (retrato() ? 'gire o celular para ver maior' : '');
+  btnMenos.disabled = !ampliado;
+  btnMais.disabled = kAtual >= ZOOM_MAX - .001;
+}
+
+function limitarPalco(){
+  const w = modalTela.clientWidth, h = modalTela.clientHeight;
+  const lw = 1280 * kAtual, lh = 860 * kAtual;
+  palcoX = lw <= w ? (w - lw) / 2 : Math.min(0, Math.max(w - lw, palcoX));
+  palcoY = lh <= h ? (h - lh) / 2 : Math.min(0, Math.max(h - lh, palcoY));
+}
+
+function ajustarPalco(reiniciar){
+  const w = modalTela.clientWidth, h = modalTela.clientHeight;
+  // ainda sem medida (modal recém-aberto, aba em segundo plano): tenta de novo
+  if (!w || !h) { setTimeout(() => ajustarPalco(reiniciar), 60); return; }
+  const cabia = Math.abs(kAtual - kCabe) < .001;
+  kCabe = Math.min(w / 1280, h / 860);
+  if (reiniciar || cabia) kAtual = kCabe;
+  else if (kAtual < kCabe) kAtual = kCabe;
+  limitarPalco();
+  pintarPalco();
+}
+
+function zoomPara(novo, cx, cy){
+  const w = modalTela.clientWidth, h = modalTela.clientHeight;
+  if (cx === undefined) { cx = w / 2; cy = h / 2; }
+  novo = Math.min(ZOOM_MAX, Math.max(kCabe, novo));
+  if (novo === kAtual) return;
+  // mantém fixo o ponto que está sob o dedo enquanto a escala muda
+  palcoX = cx - (cx - palcoX) * (novo / kAtual);
+  palcoY = cy - (cy - palcoY) * (novo / kAtual);
+  kAtual = novo;
+  limitarPalco();
+  pintarPalco();
+}
+
+botoesZoom.forEach(b => b.addEventListener('click', () => {
+  const q = b.dataset.zoom;
+  if (q === 'ajustar') { kAtual = kCabe; limitarPalco(); pintarPalco(); }
+  else zoomPara(kAtual * (q === 'mais' ? 1.45 : 1 / 1.45));
+}));
+
+new ResizeObserver(() => ajustarPalco(false)).observe(modalTela);
+addEventListener('orientationchange', () => setTimeout(() => ajustarPalco(true), 250));
+
+/* arrasto e pinça sobre o véu (só existe quando está ampliado) */
+const dedos = new Map();
+let pinca = null;
+
+modalVeu.addEventListener('pointerdown', ev => {
+  modalVeu.setPointerCapture(ev.pointerId);
+  dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  modalVeu.classList.add('arrastando');
+  if (dedos.size === 2) {
+    const [a, b] = [...dedos.values()];
+    pinca = { d: Math.hypot(a.x - b.x, a.y - b.y), k: kAtual };
+  }
+});
+
+modalVeu.addEventListener('pointermove', ev => {
+  const antes = dedos.get(ev.pointerId);
+  if (!antes) return;
+  const agora = { x: ev.clientX, y: ev.clientY };
+
+  if (dedos.size === 2 && pinca) {
+    dedos.set(ev.pointerId, agora);
+    const [a, b] = [...dedos.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (pinca.d > 0) {
+      const r = modalTela.getBoundingClientRect();
+      zoomPara(pinca.k * (d / pinca.d), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+    }
+    return;
+  }
+
+  palcoX += agora.x - antes.x;
+  palcoY += agora.y - antes.y;
+  dedos.set(ev.pointerId, agora);
+  limitarPalco();
+  pintarPalco();
+});
+
+function soltarDedo(ev){
+  dedos.delete(ev.pointerId);
+  if (dedos.size < 2) pinca = null;
+  if (!dedos.size) modalVeu.classList.remove('arrastando');
+}
+modalVeu.addEventListener('pointerup', soltarDedo);
+modalVeu.addEventListener('pointercancel', soltarDedo);
+
+modalTela.addEventListener('wheel', ev => {
+  if (!ev.ctrlKey && modalVeu.hidden) return; // rolagem normal não mexe no zoom
+  ev.preventDefault();
+  const r = modalTela.getBoundingClientRect();
+  zoomPara(kAtual * (ev.deltaY < 0 ? 1.12 : 1 / 1.12), ev.clientX - r.left, ev.clientY - r.top);
+}, { passive: false });
 
 function abrirModal(n){
   const e = EFEITOS.find(x => x.n === n);
@@ -1173,8 +1339,7 @@ function abrirModal(n){
   modalNum.textContent = e.n;
   modalTitulo.textContent = e.nome;
   modalTec.textContent = e.tec;
-  modalLink.href = e.pasta + '/index.html';
-  modalIframe.src = e.pasta + '/index.html';
+  modalIframe.src = 'previas/visor.html?e=' + e.n;
   modalComprar.dataset.quero = n;
   modalComprar.querySelector('span')?.remove();
   modalComprar.textContent = sacola.has(n) ? 'Na sacola' : 'Quero este';
@@ -1182,6 +1347,9 @@ function abrirModal(n){
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('travado');
   document.getElementById('modalFechar').focus({ preventScroll: true });
+  // trava a rolagem do fundo muda a largura disponível, então mede duas vezes
+  ajustarPalco(true);
+  requestAnimationFrame(() => ajustarPalco(true));
 }
 
 function fecharModal(){

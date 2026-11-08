@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Prévia</title>
+<style>
+  html,body{margin:0;height:100%;background:#0a0a0b;overflow:hidden}
+  iframe{display:block;width:100%;height:100%;border:0;background:#0a0a0b}
+  .falha{display:grid;place-items:center;height:100%;color:rgba(247,242,236,.5);
+    font:13px/1.5 ui-sans-serif,system-ui,"Segoe UI",sans-serif;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<script>
+/* O visor só existe dentro da loja. Aberto sozinho, devolve a pessoa
+   para a vitrine — a prévia não é um arquivo para levar. */
+(function () {
+  if (window.self === window.top) { location.replace('../index.html'); return; }
+  try {
+    if (window.top.location.origin !== location.origin) { document.body.textContent = ''; return; }
+  } catch (e) { document.body.textContent = ''; return; }
+
+  var n = (new URLSearchParams(location.search).get('e') || '').replace(/[^0-9]/g, '').slice(0, 2);
+  if (n.length !== 2) { falhar(); return; }
+
+  var k = ['fulgor', 'previa', '2026'].join('-');
+
+  fetch(n + '.dat', { cache: 'force-cache' })
+    .then(function (r) { if (!r.ok) throw 0; return r.text(); })
+    .then(function (b64) {
+      var cru = atob(b64.trim());
+      var bytes = new Uint8Array(cru.length);
+      for (var i = 0; i < cru.length; i++) {
+        bytes[i] = cru.charCodeAt(i) ^ k.charCodeAt(i % k.length) ^ (i & 0xff);
+      }
+      var f = document.createElement('iframe');
+      f.setAttribute('title', 'Prévia do efeito');
+      f.setAttribute('scrolling', 'no');
+      f.srcdoc = new TextDecoder().decode(bytes);
+      document.body.appendChild(f);
+    })
+    .catch(falhar);
+
+  function falhar() {
+    document.body.innerHTML = '<div class="falha">Não foi possível carregar esta prévia.<br>Recarregue a página.</div>';
+  }
+})();
+</script>
+</body>
+</html>

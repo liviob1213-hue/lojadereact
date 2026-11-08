@@ -1,0 +1,27 @@
+# O que não sobe para a Vercel.
+# As pastas dos efeitos são o produto: ficam no repositório, nunca no site.
+# O que o site mostra são as prévias geradas em /previas.
+
+01-arara-de-roupas/
+02-menisco/
+03-casa-inteligente/
+04-rodape-liquido/
+05-painel-panoramico/
+06-cartoes-em-ordem-de-leitura/
+07-otp-de-vidro/
+08-lente-liquida/
+09-vidro-espacial/
+10-login-octogono/
+11-escritorio-3d-com-ia/
+12-lateral-de-vidro/
+13-kanban-fantasma/
+14-pilula-que-estica/
+
+# documentação interna: descreve a técnica de cada efeito
+LEIAME.md
+catalogo.html
+
+# ferramentas de desenvolvimento
+ferramentas/
+servidor-local.mjs
+.claude/
