@@ -405,8 +405,8 @@
   details p{margin:0 0 20px;font-size:14px;line-height:1.68;color:var(--texto-2);max-width:60ch;padding-right:24px}
   details p b{color:var(--texto)}
 
-  /* ------------------------------------------------ sacola */
-  .sacola{
+  /* ------------------------------------------------ oferta do pacote */
+  .barra-pacote{
     position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:70;width:min(920px,calc(100vw - 28px));
     transform:translate(-50%,150%);opacity:0;pointer-events:none;
     transition:transform .55s var(--mola),opacity .4s ease;
@@ -414,13 +414,18 @@
     background:rgba(14,11,9,.94);backdrop-filter:blur(22px) saturate(150%);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),0 30px 60px -26px #000,0 0 60px -30px rgba(255,106,26,.6);
   }
-  .sacola.ativa{transform:translate(-50%,0);opacity:1;pointer-events:auto}
-  .sacola-info{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-  .sacola-info small{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--texto-3)}
-  .sacola-info b{font-family:var(--serif);font-size:24px;font-weight:600;letter-spacing:-.02em}
-  .sacola-dica{margin-left:auto;font-size:12px;color:var(--texto-2);max-width:34ch;line-height:1.45}
-  .sacola-dica b{color:var(--ambar);font-weight:600}
-  .sacola .btn{flex:none}
+  .barra-pacote.ativa{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+  .barra-info{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;flex:none}
+  .barra-info small{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--texto-3)}
+  .barra-info b{font-family:var(--serif);font-size:24px;font-weight:600;letter-spacing:-.02em}
+  .barra-dica{margin:0 0 0 auto;font-size:12px;color:var(--texto-2);max-width:36ch;line-height:1.45}
+  .barra-dica b{color:var(--ambar);font-weight:600}
+  .barra-pacote .btn{flex:none}
+  .barra-fechar{
+    flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:var(--texto-3);
+    transition:color .25s,background .25s;
+  }
+  .barra-fechar:hover{color:var(--texto);background:rgba(255,255,255,.08)}
 
   /* ------------------------------------------------ aviso (toast) */
   .aviso{
@@ -524,10 +529,12 @@
     .espelho,.moldura .espelho{cursor:zoom-in}
     .lista-pacote{grid-template-columns:1fr}
     .passos{grid-template-columns:1fr}
-    .sacola{flex-wrap:wrap;padding:12px;gap:10px}
-    .sacola-info{flex:1}
-    .sacola-dica{order:3;flex-basis:100%;margin-left:0;max-width:none;font-size:11.5px}
-    .sacola .btn{order:2;margin-left:auto}
+    .barra-pacote{flex-wrap:wrap;padding:12px;gap:10px}
+    .barra-info{flex:1}
+    .barra-pacote .btn{order:2;margin-left:auto}
+    /* o fechar fica na linha, depois do botão: absoluto ele cairia em cima dele */
+    .barra-fechar{order:3}
+    .barra-dica{order:4;flex-basis:100%;margin-left:0;max-width:none;font-size:11.5px}
     .aviso{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
     .citacao{max-width:none}
     .chamada .acoes{width:100%}
@@ -594,7 +601,7 @@
     .titulo-secao{font-size:28px}
     .txt-longo{display:none}
     .txt-curto{display:inline}
-    .sacola-info b{font-size:21px}
+    .barra-info b{font-size:21px}
     .preco b{font-size:22px}
     .quero{padding:12px 14px;font-size:12.5px}
     .pacote-dir .por{flex-wrap:wrap}
@@ -637,9 +644,9 @@
     <a href="#duvidas">Dúvidas</a>
   </nav>
   <div class="nav-dir">
-    <a class="nav-sacola" href="#efeitos" aria-label="Sua sacola">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
-      <span class="rotulo-sacola">Sacola</span> <b id="navQtd">0</b>
+    <a class="nav-sacola" href="#efeitos" aria-label="Ver os 14 efeitos ao vivo">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5h6v6H4zM14 5h6v6h-6zM4 13h6v6H4zM14 13h6v6h-6z"/></svg>
+      <span class="rotulo-sacola">Efeitos</span> <b>14</b>
     </a>
     <a class="btn btn-primario btn-pequeno" href="#pacote"><span>Levar os 14</span></a>
   </div>
@@ -807,10 +814,10 @@
           <span class="de">R$ 110,60</span>
           <div class="por"><b>R$ 87,90</b><span>à vista</span></div>
           <span class="cada">ou <b>R$ 6,28</b> por efeito · economia de R$ 22,70</span>
-          <button class="btn btn-primario" data-comprar-pacote>
+          <a class="btn btn-primario" href="https://pay.kiwify.com.br/nZDvypz" target="_blank" rel="noopener">
             <span class="txt-longo">Levar os 14 por R$ 87,90</span><span class="txt-curto">Levar os 14</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
+          </a>
           <p class="nota">14 arquivos · um por efeito · abre com dois cliques, sem instalar nada</p>
         </div>
       </div>
@@ -894,15 +901,19 @@
   </div>
 </footer>
 
-<!-- ============================================================ sacola -->
-<div class="sacola" id="sacola" aria-live="polite">
-  <div class="sacola-info">
-    <small>sua sacola</small>
-    <b id="sacolaTotal">R$ 0,00</b>
-    <small id="sacolaQtd">0 efeitos</small>
+<!-- ============================================================ oferta do pacote -->
+<div class="barra-pacote" id="barraPacote">
+  <div class="barra-info">
+    <small>pacote completo</small>
+    <b>R$ 87,90</b>
   </div>
-  <div class="sacola-dica" id="sacolaDica"></div>
-  <button class="btn btn-primario btn-pequeno" id="finalizar"><span class="txt-longo">Finalizar compra</span><span class="txt-curto">Finalizar</span></button>
+  <p class="barra-dica">Os <b>14 efeitos</b> por menos que doze avulsos — <b>R$ 22,70</b> de economia.</p>
+  <a class="btn btn-primario btn-pequeno" href="https://pay.kiwify.com.br/nZDvypz" target="_blank" rel="noopener">
+    <span class="txt-longo">Levar os 14</span><span class="txt-curto">Levar</span>
+  </a>
+  <button class="barra-fechar" id="barraFechar" aria-label="Fechar a oferta do pacote">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
 </div>
 
 <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
@@ -934,7 +945,7 @@
     </div>
     <div class="modal-pe">
       <div class="preco"><small>efeito avulso</small><b>R$ 7,90</b></div>
-      <button class="btn btn-primario btn-pequeno" id="modalComprar">Quero este</button>
+      <a class="btn btn-primario btn-pequeno" id="modalComprar" href="#" target="_blank" rel="noopener">Quero este</a>
     </div>
   </div>
 </div>
@@ -953,39 +964,40 @@
 
 const PRECO_EFEITO = 7.90;
 const PRECO_PACOTE = 87.90;
+const LINK_PACOTE = 'https://pay.kiwify.com.br/nZDvypz';
 const LARGURA_PREVIA = 1280;
 const ALTURA_PREVIA = 860;
 const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const real = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const EFEITOS = [
-  { n:'01', pasta:'01-arara-de-roupas', nome:'Arara de roupas', cat:'Vitrine', tec:'CSS 3D · clip-path',
+  { n:'01', link:'https://pay.kiwify.com.br/HTSUyDt', pasta:'01-arara-de-roupas', nome:'Arara de roupas', cat:'Vitrine', tec:'CSS 3D · clip-path',
     texto:'Peças penduradas de perfil num trilho de verdade. A do mouse gira de frente e empurra as vizinhas; clicar traz ao centro e a cor troca como uma cortina descendo.' },
-  { n:'02', pasta:'02-menisco', nome:'Menisco', cat:'Navegação', tec:'caminho SVG por quadro',
+  { n:'02', link:'https://pay.kiwify.com.br/Jq2MzCY', pasta:'02-menisco', nome:'Menisco', cat:'Navegação', tec:'caminho SVG por quadro',
     texto:'A bolha de vidro escorre entre as abas com mola, e o encontro com a barra ganha a curvatura exata de um líquido. Nada de fundo que desliza por baixo.' },
-  { n:'03', pasta:'03-casa-inteligente', nome:'Casa inteligente', cat:'Painéis', tec:'clip-path simétrico',
+  { n:'03', link:'https://pay.kiwify.com.br/jlpfdRU', pasta:'03-casa-inteligente', nome:'Casa inteligente', cat:'Painéis', tec:'clip-path simétrico',
     texto:'A lista abre empurrando o que está abaixo com recorte, no mesmo tanto — e cada cômodo troca o cenário atrás do painel de vidro.' },
-  { n:'04', pasta:'04-rodape-liquido', nome:'Rodapé líquido', cat:'Vitrine', tec:'mask + onda amortecida',
+  { n:'04', link:'https://pay.kiwify.com.br/QeM6jtm', pasta:'04-rodape-liquido', nome:'Rodapé líquido', cat:'Vitrine', tec:'mask + onda amortecida',
     texto:'O vidro sobe com a borda ondulando até assentar. A marca gigante é um buraco no fosco, e uma bolinha rola pela borda enquanto você mexe.' },
-  { n:'05', pasta:'05-painel-panoramico', nome:'Painel panorâmico', cat:'Painéis', tec:'glassmorphism · stagger',
+  { n:'05', link:'https://pay.kiwify.com.br/Jjvc2PB', pasta:'05-painel-panoramico', nome:'Painel panorâmico', cat:'Painéis', tec:'glassmorphism · stagger',
     texto:'Uma janela de vidro sobre um pôr do sol. Cada aba troca o conteúdo com desfoque, e os cartões entram da direita em atraso escalonado.' },
-  { n:'06', pasta:'06-cartoes-em-ordem-de-leitura', nome:'Cartões em ordem de leitura', cat:'Painéis', tec:'FLIP · getBoundingClientRect',
+  { n:'06', link:'https://pay.kiwify.com.br/26P2A2d', pasta:'06-cartoes-em-ordem-de-leitura', nome:'Cartões em ordem de leitura', cat:'Painéis', tec:'FLIP · getBoundingClientRect',
     texto:'Os cartões pousam na ordem em que se lê a tela, não na ordem do HTML. Os números contam até o valor e o painel parece montar sozinho.' },
-  { n:'07', pasta:'07-otp-de-vidro', nome:'OTP de vidro', cat:'Formulários', tec:'SVG stroke-dashoffset',
+  { n:'07', link:'https://pay.kiwify.com.br/6EiycAY', pasta:'07-otp-de-vidro', nome:'OTP de vidro', cat:'Formulários', tec:'SVG stroke-dashoffset',
     texto:'Cartão de cantos chanfrados. Ao verificar, os quatro dígitos viram um quadrado, se ligam por linhas e fundem num núcleo com partículas em órbita.' },
-  { n:'08', pasta:'08-lente-liquida', nome:'Lente líquida', cat:'Navegação', tec:'feTurbulence · feDisplacementMap',
+  { n:'08', link:'https://pay.kiwify.com.br/ucQoZrO', pasta:'08-lente-liquida', nome:'Lente líquida', cat:'Navegação', tec:'feTurbulence · feDisplacementMap',
     texto:'Uma faixa de vidro atravessa a tela refratando o que está atrás e troca a página no meio da passagem. O vidro parece ter espessura.' },
-  { n:'09', pasta:'09-vidro-espacial', nome:'Vidro espacial', cat:'Painéis', tec:'tokens .css + .js · estilo completo',
+  { n:'09', link:'https://pay.kiwify.com.br/NT574Dc', pasta:'09-vidro-espacial', nome:'Vidro espacial', cat:'Painéis', tec:'tokens .css + .js · estilo completo',
     texto:'O estilo inteiro, não só um efeito: placas soltas, fio de luz na borda, serifada nos números e tudo entrando saindo do desfoque. Vem com tokens documentados.' },
-  { n:'10', pasta:'10-login-octogono', nome:'Login que vira octógono', cat:'Formulários', tec:'clip-path polygon · 8 pontos',
+  { n:'10', link:'https://pay.kiwify.com.br/uhpn1XN', pasta:'10-login-octogono', nome:'Login que vira octógono', cat:'Formulários', tec:'clip-path polygon · 8 pontos',
     texto:'Ao trocar para criar conta o cartão vira octógono, os cantos soltos voam e formam o logo, e um anel pulsa atrás. Os campos entram em sequência.' },
-  { n:'11', pasta:'11-escritorio-3d-com-ia', nome:'Escritório 3D com IA', cat:'Painéis', tec:'CSS 3D · billboards',
+  { n:'11', link:'https://pay.kiwify.com.br/P6MVvkd', pasta:'11-escritorio-3d-com-ia', nome:'Escritório 3D com IA', cat:'Painéis', tec:'CSS 3D · billboards',
     texto:'Um escritório isométrico com pessoas trabalhando. Clicar numa pessoa aproxima a câmera e abre a ficha; o assistente desliza da direita.' },
-  { n:'12', pasta:'12-lateral-de-vidro', nome:'Lateral de vidro', cat:'Navegação', tec:'ResizeObserver · mola',
+  { n:'12', link:'https://pay.kiwify.com.br/X6a14DG', pasta:'12-lateral-de-vidro', nome:'Lateral de vidro', cat:'Navegação', tec:'ResizeObserver · mola',
     texto:'A lateral encolhe e cresce com mola, as dicas só aparecem quando ela está fechada, e o indicador escorrega entre os itens sem perder o lugar.' },
-  { n:'13', pasta:'13-kanban-fantasma', nome:'Kanban com fantasma', cat:'Painéis', tec:'elementFromPoint · FLIP',
+  { n:'13', link:'https://pay.kiwify.com.br/RXg3iJM', pasta:'13-kanban-fantasma', nome:'Kanban com fantasma', cat:'Painéis', tec:'elementFromPoint · FLIP',
     texto:'Arrastar levanta um clone do cartão. A coluna sob o cursor se acende, as outras cartas abrem espaço e o cartão pousa com FLIP.' },
-  { n:'14', pasta:'14-pilula-que-estica', nome:'Pílula que estica', cat:'Navegação', tec:'clip-path inset por borda',
+  { n:'14', link:'https://pay.kiwify.com.br/yFH3qBT', pasta:'14-pilula-que-estica', nome:'Pílula que estica', cat:'Navegação', tec:'clip-path inset por borda',
     texto:'A pílula do menu não desliza: as duas bordas andam em tempos diferentes, então ela estica no caminho e volta ao tamanho ao chegar.' },
 ];
 
@@ -1052,10 +1064,11 @@ grade.innerHTML = EFEITOS.map((e, i) => `
       <span class="tec">${e.tec}</span>
       <div class="produto-compra">
         <div class="preco"><small>efeito avulso</small><b>${real(PRECO_EFEITO)}</b></div>
-        <button class="quero" data-quero="${e.n}" aria-pressed="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <a class="quero" href="${e.link}" target="_blank" rel="noopener"
+           aria-label="Comprar ${e.nome} por ${real(PRECO_EFEITO)}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
           <span>Quero este</span>
-        </button>
+        </a>
       </div>
     </div>
   </article>`).join('') + `
@@ -1135,47 +1148,23 @@ document.querySelectorAll('.filtro').forEach(btn => {
   });
 });
 
-/* ------------------------------------------------ sacola */
-const sacola = new Set();
-const barraSacola = document.getElementById('sacola');
-const sacolaTotal = document.getElementById('sacolaTotal');
-const sacolaQtd = document.getElementById('sacolaQtd');
-const sacolaDica = document.getElementById('sacolaDica');
-const navQtd = document.getElementById('navQtd');
+/* ------------------------------------------------ oferta do pacote
+   Cada efeito vai direto para o seu próprio checkout, então não há
+   carrinho a somar. A barra existe só para lembrar o pacote de quem
+   já desceu até a vitrine, e some se a pessoa fechar. */
+const barraPacote = document.getElementById('barraPacote');
+let pacoteDispensado = false;
 
-function pintarSacola(){
-  const itens = sacola.size;
-  const total = itens * PRECO_EFEITO;
-  navQtd.textContent = itens;
-  sacolaTotal.textContent = real(total);
-  sacolaQtd.textContent = itens === 1 ? '1 efeito' : itens + ' efeitos';
-  barraSacola.classList.toggle('ativa', itens > 0);
-
-  if (itens === 0) {
-    sacolaDica.innerHTML = '';
-  } else if (total > PRECO_PACOTE) {
-    sacolaDica.innerHTML = `Você já passou do pacote: os 14 saem por <b>${real(PRECO_PACOTE)}</b> e você economiza <b>${real(total - PRECO_PACOTE)}</b>.`;
-  } else {
-    sacolaDica.innerHTML = `Com o pacote completo você paga <b>${real(PRECO_PACOTE)}</b> e leva os 14 — faltam <b>${real(PRECO_PACOTE - total)}</b> para valer a pena.`;
-  }
-
-  document.querySelectorAll('[data-quero]').forEach(b => {
-    const dentro = sacola.has(b.dataset.quero);
-    b.setAttribute('aria-pressed', String(dentro));
-    const rotulo = b.querySelector('span');
-    if (rotulo) rotulo.textContent = dentro ? 'Na sacola' : 'Quero este';
-    else b.textContent = dentro ? 'Na sacola' : 'Quero este';
-  });
-}
-
-function alternar(n){
-  if (sacola.has(n)) sacola.delete(n); else sacola.add(n);
-  pintarSacola();
-}
-grade.addEventListener('click', ev => {
-  const b = ev.target.closest('[data-quero]');
-  if (b) alternar(b.dataset.quero);
+document.getElementById('barraFechar').addEventListener('click', () => {
+  pacoteDispensado = true;
+  barraPacote.classList.remove('ativa');
 });
+
+const olhoVitrine = new IntersectionObserver(ents => {
+  if (pacoteDispensado) return;
+  barraPacote.classList.toggle('ativa', ents.some(e => e.isIntersecting));
+}, { rootMargin: '-10% 0px -10% 0px' });
+olhoVitrine.observe(document.getElementById('efeitos'));
 
 /* ------------------------------------------------ aviso */
 const aviso = document.getElementById('aviso');
@@ -1187,18 +1176,13 @@ function mostrarAviso(html, ms = 5200){
   avisoTimer = setTimeout(() => aviso.classList.remove('ativo'), ms);
 }
 
-const avisoCompra = 'O checkout desta loja ainda não está ligado — os links de pagamento entram em breve. ' +
-  'As prévias e os valores acima já estão valendo.';
-
-document.getElementById('finalizar').addEventListener('click', () => {
-  const itens = sacola.size;
-  if (!itens) return;
-  mostrarAviso(`<b>Quase lá.</b> ${itens} ${itens === 1 ? 'efeito' : 'efeitos'} · ${real(itens * PRECO_EFEITO)}. ${avisoCompra}`);
-});
-
-document.querySelector('[data-comprar-pacote]').addEventListener('click', () => {
-  mostrarAviso(`<b>Pacote completo · ${real(PRECO_PACOTE)}.</b> ${avisoCompra}`);
-});
+/* o checkout abre em outra aba; quem está no celular nem sempre percebe
+   que a aba mudou, então o aviso confirma que o clique funcionou */
+document.addEventListener('click', ev => {
+  const pagar = ev.target.closest('a[href*="pay.kiwify.com.br"]');
+  if (!pagar) return;
+  mostrarAviso('<b>Abrindo o pagamento em outra aba.</b> Se não aparecer, verifique se o navegador bloqueou a janela.', 4200);
+}, true);
 
 /* ------------------------------------------------ modal / tela cheia */
 const modal = document.getElementById('modal');
@@ -1216,7 +1200,6 @@ const btnMenos = botoesZoom.find(b => b.dataset.zoom === 'menos');
 const btnMais = botoesZoom.find(b => b.dataset.zoom === 'mais');
 const ZOOM_MAX = 2.4;
 let focoAnterior = null;
-let efeitoAberto = null;
 
 /* ------------------------------------------------ palco do modal
    O efeito tem tamanho de projeto (1280×860) e não encolhe sozinho:
@@ -1340,9 +1323,7 @@ function abrirModal(n){
   modalTitulo.textContent = e.nome;
   modalTec.textContent = e.tec;
   modalIframe.src = 'previas/visor.html?e=' + e.n;
-  modalComprar.dataset.quero = n;
-  modalComprar.querySelector('span')?.remove();
-  modalComprar.textContent = sacola.has(n) ? 'Na sacola' : 'Quero este';
+  modalComprar.href = e.link;
   modal.classList.add('aberto');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('travado');
@@ -1368,14 +1349,6 @@ document.addEventListener('click', ev => {
 document.getElementById('modalFechar').addEventListener('click', fecharModal);
 addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('aberto')) fecharModal(); });
 
-modalComprar.addEventListener('click', () => {
-  if (!efeitoAberto) return;
-  alternar(efeitoAberto);
-  modalComprar.textContent = sacola.has(efeitoAberto) ? 'Na sacola' : 'Quero este';
-  if (sacola.has(efeitoAberto)) mostrarAviso(`<b>${efeitoAberto} na sacola.</b> ${real(PRECO_EFEITO)} — ${sacola.size} ${sacola.size === 1 ? 'efeito' : 'efeitos'} até agora.`);
-});
-
-pintarSacola();
 </script>
 </body>
 </html>
