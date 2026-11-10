@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fragmentadora</title>
+<!--
+  EFEITO 19 — Fragmentadora
+  Referência: a ideia de "shredder" (apagar algo passando por uma fragmentadora
+  de papel). Escrito do zero para a FULGOR, sem código de terceiros.
+
+  O que define o efeito:
+    1. o documento ENTRA na boca da fragmentadora: acima da boca ele continua
+       inteiro, abaixo dela já saiu em tiras — as duas coisas ao mesmo tempo;
+    2. as tiras são o próprio documento (o texto continua nelas), não um
+       desenho genérico de tiras;
+    3. enquanto saem, as tiras balançam penduradas na boca, cada uma no seu
+       ritmo, e se abrem um pouco em leque;
+    4. quando o papel acaba, as tiras caem com gravidade, uma de cada vez, e a
+       máquina para de vibrar.
+
+  Como é feito: o papel original é recortado (clip-path) para mostrar só o que
+  está acima da linha da boca. Por baixo, N cópias do mesmo papel, cada uma
+  recortada numa faixa vertical E só abaixo da linha da boca. Um laço de
+  requestAnimationFrame anda o papel e recalcula os recortes; cada tira gira em
+  volta do ponto em que ela está presa na boca (transform-origin por quadro).
+
+  O que costuma sair errado:
+    - trocar o papel por tiras de uma vez: some a parte "meio inteiro, meio
+      fragmentado", que é o que vende o efeito;
+    - girar as tiras em volta do próprio centro: elas "flutuam" em vez de
+      penderem da boca;
+    - deixar as cópias no DOM depois: aqui elas são removidas ao terminar.
+-->
+<style>
+  :root {
+    --fundo: #f1eee8;
+    --placa: #ffffff;
+    --texto: #1d1b18;
+    --texto-2: #6b665e;
+    --texto-3: #a39d93;
+    --linha: rgba(29, 27, 24, .1);
+    --acento: #ff4d2e;
+    --maquina: #1d1b18;
+    --papel-l: 320px;
+    --papel-a: 410px;
+    --tiras: 16;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; grid-template-columns: 300px 1fr; background: var(--fundo); color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+  /* ---------------- lateral com a lista ---------------- */
+  .lateral { border-right: 1px solid var(--linha); padding: 26px 20px; display: flex; flex-direction: column; gap: 6px; background: #f7f5f1; }
+  .marca { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 16px; margin-bottom: 22px; }
+  .marca i { width: 26px; height: 26px; border-radius: 8px; background: var(--maquina); position: relative; }
+  .marca i::after { content: ""; position: absolute; left: 6px; right: 6px; top: 12px; height: 2px; background: var(--acento); }
+  .lateral h2 { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--texto-3); }
+  .arquivo {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    border: 0; background: none; text-align: left; font: inherit; color: inherit; width: 100%;
+    overflow: hidden; transition: background .25s, max-height .5s cubic-bezier(.65,0,.35,1), opacity .4s, padding .5s cubic-bezier(.65,0,.35,1), margin .5s;
+    max-height: 70px;
+  }
+  .arquivo:hover { background: rgba(0,0,0,.04); }
+  .arquivo[aria-current="true"] { background: var(--placa); box-shadow: 0 6px 18px -10px rgba(0,0,0,.25), inset 0 0 0 1px var(--linha); }
+  .arquivo.saindo { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+  .arquivo .ico { width: 32px; height: 40px; border-radius: 5px; flex: none; background: var(--placa); box-shadow: inset 0 0 0 1px var(--linha); position: relative; }
+  .arquivo .ico::after { content: attr(data-tipo); position: absolute; left: 3px; bottom: 4px; font: 700 7.5px var(--mono); color: #fff; background: var(--cor); padding: 1px 3px; border-radius: 2px; }
+  .arquivo b { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+  .arquivo small { color: var(--texto-3); font-size: 11.5px; }
+  .vazio { color: var(--texto-3); font-size: 13px; padding: 10px 12px; display: none; }
+  .restaurar { margin-top: 8px; align-self: flex-start; display: none; }
+
+  /* ---------------- a mesa ---------------- */
+  .mesa { position: relative; overflow: hidden; }
+  .mesa-topo { position: absolute; left: 36px; right: 36px; top: 26px; display: flex; align-items: center; gap: 14px; z-index: 6; }
+  .mesa-topo h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
+  .mesa-topo span { color: var(--texto-3); font-size: 12.5px; }
+  .botao {
+    padding: 11px 18px; border-radius: 999px; border: 0; cursor: pointer; font: 600 13px var(--sans);
+    display: inline-flex; align-items: center; gap: 8px; color: #fff; background: var(--acento);
+    box-shadow: 0 10px 24px -12px rgba(255,77,46,.9); transition: transform .3s cubic-bezier(.22,1,.36,1), opacity .3s;
+  }
+  .botao:hover { transform: translateY(-2px); }
+  .botao:disabled { opacity: .45; cursor: default; transform: none; }
+  .botao.vazio { color: var(--texto); background: var(--placa); box-shadow: inset 0 0 0 1px var(--linha); }
+  .mesa-topo .botao { margin-left: auto; }
+
+  .papel, .tira {
+    position: absolute; width: var(--papel-l); height: var(--papel-a); padding: 28px 28px 24px;
+    background: var(--placa); border-radius: 4px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 24px 40px -26px rgba(0,0,0,.4);
+    font-size: 10.5px; color: var(--texto-2); will-change: transform, clip-path;
+  }
+  .papel.entrando { animation: entra .6s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes entra { from { opacity: 0; transform: translateY(-36px) rotate(-1.5deg); } }
+  .tira { box-shadow: none; }
+  /* sombra entre as tiras: um degradê só dentro da faixa de cada uma */
+  .tira::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--x); width: var(--w);
+    background: linear-gradient(90deg, rgba(0,0,0,.14), transparent 22%, transparent 78%, rgba(0,0,0,.1)); }
+  .doc-cab { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
+  .doc-cab b { font-family: var(--serif); font-size: 19px; color: var(--texto); }
+  .doc-cab span { font-family: var(--mono); font-size: 9px; padding: 3px 6px; border-radius: 4px; background: #fbe6e1; color: var(--acento); }
+  .doc p { margin: 0 0 10px; line-height: 1.55; }
+  .doc .linhas i { display: block; height: 6px; border-radius: 3px; background: #ece8e1; margin-bottom: 7px; }
+  .doc table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; }
+  .doc td { padding: 5px 0; border-bottom: 1px solid #efebe4; }
+  .doc td:last-child { text-align: right; font-family: var(--mono); color: var(--texto); }
+  .doc .total { display: flex; justify-content: space-between; font-weight: 700; color: var(--texto); font-size: 12px; }
+  .doc .assina { margin-top: 18px; font-family: var(--serif); font-style: italic; font-size: 20px; color: #3a4fbf; transform: rotate(-4deg); display: inline-block; }
+
+  /* a máquina: só a boca e a frente aparecem */
+  .maquina { position: absolute; left: 50%; transform: translateX(-50%); width: 400px; z-index: 5; pointer-events: none; }
+  .maquina .boca { height: 30px; border-radius: 10px; background: linear-gradient(180deg, #34312c, var(--maquina)); box-shadow: 0 18px 30px -16px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12); position: relative; }
+  .maquina .boca::before { content: ""; position: absolute; left: 30px; right: 30px; top: 13px; height: 4px; border-radius: 2px; background: #0b0a09; box-shadow: inset 0 1px 2px #000; }
+  .maquina .luz { position: absolute; right: 12px; top: 11px; width: 7px; height: 7px; border-radius: 50%; background: #5a554d; }
+  .maquina.ligada .luz { background: #57e389; box-shadow: 0 0 10px #57e389; }
+  .maquina.ligada { animation: vibra .07s linear infinite; }
+  @keyframes vibra { 0% { transform: translate(-50%, 0); } 50% { transform: translate(calc(-50% + .8px), .6px); } 100% { transform: translate(-50%, 0); } }
+  .maquina .rotulo { position: absolute; left: 14px; top: 8px; font: 700 9px var(--mono); letter-spacing: .2em; color: rgba(255,255,255,.4); }
+  .farelo { position: absolute; width: 4px; height: 7px; background: #fff; box-shadow: 0 0 0 .5px rgba(0,0,0,.08); z-index: 4; pointer-events: none; }
+
+  .aviso { position: absolute; left: 50%; bottom: 30px; transform: translate(-50%, 20px); opacity: 0; padding: 12px 18px; border-radius: 12px; background: var(--maquina); color: #fff; font-size: 13px; transition: opacity .3s, transform .45s cubic-bezier(.22,1,.36,1); z-index: 8; }
+  .aviso.ativo { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; }
+    .lateral { display: none; }
+    :root { --papel-l: 270px; --papel-a: 400px; }
+    .mesa-topo { left: 16px; right: 16px; }
+    .mesa-topo h1 { font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mesa-topo .botao { flex: none; }
+    .maquina { width: 320px; }
+    .mesa-topo span { display: none; }
+  }
+</style>
+</head>
+<body>
+  <aside class="lateral">
+    <div class="marca"><i></i>Cofre</div>
+    <h2>Para descartar</h2>
+    <div id="lista"></div>
+    <p class="vazio" id="vazio">Nada para descartar. Tudo limpo.</p>
+    <button class="botao vazio restaurar" id="restaurar">Restaurar arquivos</button>
+  </aside>
+
+  <section class="mesa" id="mesa">
+    <div class="mesa-topo">
+      <h1 id="titulo">Documento</h1><span id="sub"></span>
+      <button class="botao" id="fragmentar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h16M7 9v11M11 9v11M15 9v11M19 9v11M7 4h10v5H7z"/></svg>
+        Fragmentar
+      </button>
+    </div>
+    <div class="maquina" id="maquina"><div class="boca"><span class="rotulo">CF-16</span><i class="luz"></i></div></div>
+    <div class="aviso" id="aviso" role="status"></div>
+  </section>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const css = getComputedStyle(document.documentElement);
+  const N = parseInt(css.getPropertyValue('--tiras'), 10);
+
+  const DOCS = [
+    { nome: 'Contrato_aluguel_2023.pdf', tipo: 'PDF', cor: '#ff4d2e', data: 'há 2 anos', titulo: 'Contrato', selo: 'VENCIDO',
+      itens: [['Aluguel mensal', 'R$ 2.400,00'], ['Condomínio', 'R$ 610,00'], ['Caução', 'R$ 7.200,00']], total: 'R$ 10.210,00' },
+    { nome: 'Fatura_cartao_marco.pdf', tipo: 'PDF', cor: '#ff4d2e', data: 'há 8 meses', titulo: 'Fatura', selo: 'PAGA',
+      itens: [['Mercado Bom Dia', 'R$ 412,80'], ['Posto Estrada', 'R$ 230,00'], ['Livraria Ponto', 'R$ 89,90']], total: 'R$ 732,70' },
+    { nome: 'Orcamento_reforma_v3.xls', tipo: 'XLS', cor: '#1f9d55', data: 'há 1 ano', titulo: 'Orçamento', selo: 'RASCUNHO',
+      itens: [['Piso da sala', 'R$ 3.800,00'], ['Pintura', 'R$ 1.950,00'], ['Mão de obra', 'R$ 4.200,00']], total: 'R$ 9.950,00' },
+    { nome: 'Recibo_mudanca.pdf', tipo: 'PDF', cor: '#ff4d2e', data: 'há 3 anos', titulo: 'Recibo', selo: 'ANTIGO',
+      itens: [['Frete', 'R$ 1.100,00'], ['Embalagem', 'R$ 280,00'], ['Montagem', 'R$ 350,00']], total: 'R$ 1.730,00' },
+  ];
+  let restantes = DOCS.slice();
+
+  const mesa = document.getElementById('mesa');
+  const lista = document.getElementById('lista');
+  const maquina = document.getElementById('maquina');
+  const botao = document.getElementById('fragmentar');
+  const titulo = document.getElementById('titulo');
+  const sub = document.getElementById('sub');
+  const aviso = document.getElementById('aviso');
+  let papel = null, atual = null, ocupado = false;
+
+  const htmlDoc = (d) => `<div class="doc">
+      <div class="doc-cab"><b>${d.titulo}</b><span>${d.selo}</span></div>
+      <p>Referente a ${d.nome.replace(/_/g, ' ').replace(/\.\w+$/, '')}. Documento gerado pelo Cofre para conferência.</p>
+      <div class="linhas"><i style="width:92%"></i><i style="width:80%"></i><i style="width:86%"></i></div>
+      <table>${d.itens.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>
+      <div class="total"><span>Total</span><span>${d.total}</span></div>
+      <div class="linhas" style="margin-top:14px"><i style="width:70%"></i><i style="width:58%"></i></div>
+      <span class="assina">M. Duarte</span>
+    </div>`;
+
+  /* ---------------- geometria: onde ficam o papel e a boca ---------------- */
+  let PL, PA, x0, y0, bocaY;
+  function medir() {
+    PL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--papel-l'));
+    PA = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--papel-a'));
+    const r = mesa.getBoundingClientRect();
+    x0 = (r.width - PL) / 2;
+    y0 = Math.max(84, r.height * .12);
+    bocaY = y0 + PA + 26;                  // a linha de corte, em coordenadas da mesa
+    maquina.style.top = (bocaY - 15) + 'px';
+    if (papel && !ocupado) { papel.style.left = x0 + 'px'; papel.style.top = y0 + 'px'; }
+  }
+
+  function pintarLista() {
+    lista.innerHTML = restantes.map((d) => `<button class="arquivo" data-nome="${d.nome}" aria-current="${d === atual}">
+      <span class="ico" data-tipo="${d.tipo}" style="--cor:${d.cor}"></span>
+      <span><b>${d.nome}</b><small>${d.data}</small></span></button>`).join('');
+    const nada = !restantes.length;
+    document.getElementById('vazio').style.display = nada ? 'block' : 'none';
+    document.getElementById('restaurar').style.display = nada ? 'inline-flex' : 'none';
+    botao.disabled = nada;
+  }
+
+  function mostrar(d) {
+    atual = d;
+    if (papel) papel.remove();
+    papel = null;
+    if (!d) { titulo.textContent = 'Tudo limpo'; sub.textContent = ''; pintarLista(); return; }
+    papel = document.createElement('article');
+    papel.className = 'papel entrando';
+    papel.style.left = x0 + 'px'; papel.style.top = y0 + 'px';
+    papel.innerHTML = htmlDoc(d);
+    mesa.appendChild(papel);
+    titulo.textContent = d.nome;
+    sub.textContent = `modificado ${d.data}`;
+    pintarLista();
+  }
+
+  lista.addEventListener('click', (e) => {
+    const b = e.target.closest('.arquivo');
+    if (!b || ocupado) return;
+    mostrar(restantes.find((d) => d.nome === b.dataset.nome));
+  });
+  document.getElementById('restaurar').addEventListener('click', () => {
+    restantes = DOCS.slice(); mostrar(restantes[0]);
+  });
+
+  function avisar(txt) {
+    aviso.textContent = txt; aviso.classList.add('ativo');
+    clearTimeout(avisar.t); avisar.t = setTimeout(() => aviso.classList.remove('ativo'), 2600);
+  }
+
+  /* ---------------- a fragmentação ---------------- */
+  const FEED = 1900;       // ms para o papel inteiro passar pela boca
+  const QUEDA = 1100;      // ms de queda das tiras
+
+  function fragmentar() {
+    if (ocupado || !papel || !atual) return;
+    ocupado = true; botao.disabled = true;
+    const doc = atual;
+    papel.classList.remove('entrando');
+
+    if (reduzido) {
+      papel.style.transition = 'opacity .3s'; papel.style.opacity = '0';
+      setTimeout(() => terminar(doc), 320);
+      return;
+    }
+
+    // larguras levemente diferentes: tira de máquina nunca é perfeita
+    const larguras = Array.from({ length: N }, () => .85 + Math.random() * .3);
+    const soma = larguras.reduce((a, b) => a + b, 0);
+    let acc = 0;
+    const tiras = larguras.map((lw, i) => {
+      const L = (acc / soma) * PL; acc += lw; const R = PL - (acc / soma) * PL;
+      const t = document.createElement('div');
+      t.className = 'tira';
+      t.innerHTML = papel.innerHTML;
+      t.style.left = x0 + 'px'; t.style.top = y0 + 'px';
+      t.style.setProperty('--x', L + 'px'); t.style.setProperty('--w', (PL - L - R) + 'px');
+      mesa.insertBefore(t, maquina);
+      return { el: t, L, R, cx: L + (PL - L - R) / 2, fase: Math.random() * 6, lado: i - (N - 1) / 2, vy: 0, giro: (Math.random() - .5) * 40, atraso: Math.random() * 260 };
+    });
+
+    maquina.classList.add('ligada');
+    const inicio = performance.now();
+    const folga = bocaY - y0 - PA;           // quanto o papel anda antes de tocar a boca
+    let ultimoFarelo = 0;
+
+    function quadro(agora) {
+      const t = agora - inicio;
+      // começa devagar e depois anda em velocidade constante, como o motor pegando
+      const k = Math.min(1, t / FEED);
+      const avance = k < .12 ? (k * k) / .24 : k - .06;
+      const p = (avance / .94) * (PA + folga + 4);
+      const corte = Math.max(0, Math.min(PA, bocaY - y0 - p));   // em coordenadas do papel
+
+      // o papel original mostra só o que ainda está acima da boca
+      papel.style.transform = `translateY(${p}px)`;
+      papel.style.clipPath = `inset(0 0 ${PA - corte}px 0)`;
+
+      const pendurado = PA - corte;                  // quanto já saiu por baixo
+      const solto = Math.max(0, t - FEED);           // tempo de queda
+      for (const s of tiras) {
+        const balanco = Math.sin(t / 210 + s.fase) * Math.min(1, pendurado / 140) * 2.4;
+        const leque = s.lado * Math.min(1, pendurado / PA) * 1.6;
+        let dy = 0, giro = balanco, alfa = 1;
+        if (solto > s.atraso) {
+          const q = (solto - s.atraso) / 1000;
+          dy = 1400 * q * q;                          // gravidade
+          giro += s.giro * q;
+          alfa = Math.max(0, 1 - q * 1.1);
+        }
+        s.el.style.transformOrigin = `${s.cx}px ${corte}px`;   // presa na boca
+        s.el.style.transform = `translate(${leque}px, ${p + dy}px) rotate(${giro}deg)`;
+        s.el.style.clipPath = `inset(${corte}px ${s.R}px 0 ${s.L}px)`;
+        s.el.style.opacity = alfa;
+      }
+
+      // farelo saindo da boca enquanto corta
+      if (corte < PA && corte > 0 && agora - ultimoFarelo > 45) { ultimoFarelo = agora; farelo(); }
+      if (t >= FEED) maquina.classList.remove('ligada');
+
+      if (t < FEED + QUEDA + 300) requestAnimationFrame(quadro);
+      else { tiras.forEach((s) => s.el.remove()); terminar(doc); }
+    }
+    requestAnimationFrame(quadro);
+  }
+
+  function farelo() {
+    const f = document.createElement('i');
+    f.className = 'farelo';
+    const x = x0 + Math.random() * PL;
+    f.style.left = x + 'px'; f.style.top = bocaY + 'px';
+    mesa.appendChild(f);
+    const vx = (Math.random() - .5) * 120, rot = Math.random() * 720;
+    f.animate([
+      { transform: 'translate(0,0) rotate(0)', opacity: 1 },
+      { transform: `translate(${vx}px, ${220 + Math.random() * 160}px) rotate(${rot}deg)`, opacity: 0 },
+    ], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.4,0,.9,.6)' }).onfinish = () => f.remove();
+  }
+
+  function terminar(doc) {
+    const item = lista.querySelector(`[data-nome="${doc.nome}"]`);
+    if (item) item.classList.add('saindo');
+    avisar(`${doc.nome} foi fragmentado.`);
+    setTimeout(() => {
+      restantes = restantes.filter((d) => d !== doc);
+      ocupado = false;
+      mostrar(restantes[0] || null);
+    }, reduzido ? 0 : 480);
+  }
+
+  botao.addEventListener('click', fragmentar);
+  addEventListener('keydown', (e) => { if (e.key === 'Delete') fragmentar(); });
+  addEventListener('resize', medir);
+  medir();
+  mostrar(restantes[0]);
+})();
+</script>
+</body>
+</html>

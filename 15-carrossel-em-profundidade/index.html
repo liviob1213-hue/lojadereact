@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Carrossel em profundidade</title>
+<!--
+  EFEITO 15 — Carrossel em profundidade
+  Referência: a ideia de "depth carousel" (padrão comum de vitrine). Escrito do
+  zero para a FULGOR, sem código de terceiros.
+
+  O que define o efeito:
+    1. o cartão do centro está de frente; os outros RECUAM no eixo Z, giram um
+       pouco para dentro e perdem foco (desfoque + escurecer) conforme se afastam;
+    2. tudo é função de UM número contínuo, a posição (ex.: 2,37). Não existe
+       "estado do cartão": arrastar meio cartão deixa a cena no meio do caminho;
+    3. soltar o arrasto continua o movimento (inércia) e pousa no cartão mais
+       próximo com uma mola — nunca com uma transição de duração fixa;
+    4. a ordem de empilhamento acompanha a distância ao centro, para o cartão da
+       frente nunca ficar atrás de um vizinho no meio do giro.
+
+  Como é feito: CSS 3D (perspective no palco, translate3d + rotateY por cartão),
+  posição integrada por uma mola criticamente amortecida a cada quadro. Arrasto
+  com Pointer Events, roda do mouse, setas do teclado e clique no vizinho.
+
+  O que costuma sair errado:
+    - animar cada cartão com transition: os cartões chegam em tempos diferentes
+      e o carrossel "desmonta" no meio da troca;
+    - usar z-index fixo: o vizinho passa por cima do central durante o giro;
+    - desfocar com filter em todos os cartões sempre: custa caro. Aqui o blur
+      só existe a partir de meio cartão de distância.
+-->
+<style>
+  :root {
+    --fundo: #0b0a10;
+    --texto: #f4f1fb;
+    --texto-2: rgba(244, 241, 251, .64);
+    --texto-3: rgba(244, 241, 251, .4);
+    --acento: #b8a2ff;
+    --linha: rgba(255, 255, 255, .09);
+    --cartao-l: 300px;
+    --cartao-a: 400px;
+    --passo: 210px;        /* distância lateral entre um cartão e o próximo */
+    --recuo: 170px;        /* quanto cada passo afunda no eixo Z */
+    --giro: 24deg;         /* rotação de cada passo */
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(60% 50% at 50% 38%, rgba(140, 110, 255, .18), transparent 70%),
+      radial-gradient(40% 40% at 90% 100%, rgba(255, 140, 90, .1), transparent 70%),
+      var(--fundo);
+    overflow: hidden; user-select: none;
+  }
+  .topo { display: flex; align-items: center; gap: 22px; padding: 22px 34px; position: relative; z-index: 5; }
+  .marca { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: .02em; }
+  .marca i { width: 26px; height: 26px; border-radius: 50%; background: conic-gradient(from 200deg, #b8a2ff, #ff9b6b, #b8a2ff); }
+  .topo nav { display: flex; gap: 4px; margin-left: 26px; }
+  .topo nav a { color: var(--texto-2); text-decoration: none; padding: 7px 13px; border-radius: 999px; font-size: 13px; }
+  .topo nav a.ativo { color: var(--texto); background: rgba(255,255,255,.07); }
+  .topo .busca { margin-left: auto; width: 220px; padding: 9px 14px; border-radius: 999px; color: var(--texto-3); font-size: 12.5px; box-shadow: inset 0 0 0 1px var(--linha); }
+
+  .cabeca { text-align: center; margin-top: 6px; position: relative; z-index: 5; }
+  .cabeca small { font-size: 10.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--acento); }
+  .cabeca h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 600; font-size: 40px; letter-spacing: -.03em; }
+
+  /* ---------------- o palco 3D ---------------- */
+  .palco {
+    position: relative; height: 470px; margin-top: 8px;
+    perspective: 1400px; perspective-origin: 50% 45%;
+    cursor: grab; touch-action: pan-y;
+  }
+  .palco.arrastando { cursor: grabbing; }
+  .palco:focus-visible { outline: none; }
+  .cartao {
+    position: absolute; left: 50%; top: 50%;
+    width: var(--cartao-l); height: var(--cartao-a);
+    margin: calc(var(--cartao-a) / -2) 0 0 calc(var(--cartao-l) / -2);
+    border-radius: 22px; overflow: hidden;
+    transform-style: preserve-3d; will-change: transform, filter, opacity;
+    box-shadow: 0 40px 70px -30px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.12);
+    background: var(--c1);
+  }
+  /* a arte do cartão é toda CSS: céu, sol, duas camadas de montanha e brilho */
+  .arte { position: absolute; inset: 0; background: linear-gradient(180deg, var(--c1), var(--c2) 70%); }
+  .arte::before {
+    content: ""; position: absolute; width: 120px; height: 120px; border-radius: 50%;
+    left: var(--sx, 60%); top: var(--sy, 26%); transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--sol) 40%, transparent 70%);
+    filter: blur(1px); opacity: .95;
+  }
+  .monte { position: absolute; inset: auto 0 0 0; height: 62%; background: var(--m1);
+    clip-path: polygon(0 55%, 18% 30%, 34% 48%, 52% 18%, 70% 44%, 86% 28%, 100% 42%, 100% 100%, 0 100%); }
+  .monte.b { height: 44%; background: var(--m2);
+    clip-path: polygon(0 40%, 22% 62%, 40% 34%, 58% 58%, 78% 30%, 100% 56%, 100% 100%, 0 100%); }
+  .cartao .brilho { position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.22), transparent 38%); mix-blend-mode: soft-light; }
+  .cartao .rotulo {
+    position: absolute; left: 18px; right: 18px; bottom: 18px; padding: 14px 16px; border-radius: 16px;
+    background: rgba(10, 8, 18, .38); backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+  }
+  .rotulo small { display: block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.7); }
+  .rotulo b { font-family: var(--serif); font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+  .rotulo span { float: right; font-size: 12px; color: rgba(255,255,255,.8); margin-top: 6px; }
+
+  /* ---------------- rodapé: detalhe + pontos ---------------- */
+  .detalhe { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 4px; position: relative; z-index: 5; }
+  .seta {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; color: var(--texto);
+    background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px var(--linha);
+    display: grid; place-items: center; transition: background .25s, transform .25s;
+  }
+  .seta:hover { background: rgba(184,162,255,.18); transform: scale(1.06); }
+  .seta svg { width: 16px; height: 16px; }
+  .info { width: 360px; text-align: center; }
+  .info p { margin: 0; color: var(--texto-2); font-size: 13px; min-height: 40px; transition: opacity .25s; }
+  .pontos { display: flex; justify-content: center; gap: 7px; margin-top: 12px; }
+  .pontos i { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.2); transition: width .45s cubic-bezier(.22,1,.36,1), background .3s; }
+  .pontos i.ativo { width: 22px; background: var(--acento); }
+
+  @media (max-width: 700px) {
+    :root { --cartao-l: 230px; --cartao-a: 310px; --passo: 150px; --recuo: 140px; }
+    .topo nav, .topo .busca { display: none; }
+    .palco { height: 360px; }
+    .cabeca h1 { font-size: 30px; }
+    .info { width: 220px; }
+  }
+</style>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca"><i></i>Rotas</div>
+    <nav><a class="ativo" href="#">Explorar</a><a href="#">Salvos</a><a href="#">Viagens</a></nav>
+    <div class="busca">Buscar um destino…</div>
+  </header>
+
+  <div class="cabeca">
+    <small>escolha o próximo destino</small>
+    <h1>Para onde agora?</h1>
+  </div>
+
+  <div class="palco" id="palco" tabindex="0" role="region" aria-roledescription="carrossel" aria-label="Destinos"></div>
+
+  <div class="detalhe">
+    <button class="seta" id="antes" aria-label="Destino anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="info">
+      <p id="texto" aria-live="polite"></p>
+      <div class="pontos" id="pontos"></div>
+    </div>
+    <button class="seta" id="depois" aria-label="Próximo destino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // nome, região, noites, frase, e as cores da arte [céu1, céu2, sol, monte1, monte2, solX, solY]
+  const DESTINOS = [
+    ['Serra Azul', 'Montanhas', '4 noites', 'Trilhas de altitude e um mirante que pega o sol nascendo sobre as nuvens.', ['#3b4a9c', '#f1a37b', '#ffe3b0', '#2a2b5c', '#15142e', '62%', '30%']],
+    ['Lagoa de Vidro', 'Lagos', '3 noites', 'Água parada como espelho, cabanas na margem e caiaque ao fim da tarde.', ['#1d5d7a', '#9fd6d2', '#fff6d8', '#1f4a55', '#0d2a31', '38%', '24%']],
+    ['Dunas do Leste', 'Deserto', '5 noites', 'Areia que muda de cor com a hora e um céu de estrelas sem nenhuma luz por perto.', ['#e46b3f', '#ffd08a', '#fff1c7', '#b5502c', '#6e2a17', '70%', '36%']],
+    ['Vale Âmbar', 'Campo', '2 noites', 'Vinhedos em degraus, mesa comprida no fim do dia e estrada de terra.', ['#6a3b7c', '#f6b26b', '#ffd59a', '#4c2a4a', '#24131f', '44%', '40%']],
+    ['Ilha Calma', 'Praia', '6 noites', 'Uma vila de pescadores, mar sem onda e barco que sai às seis da manhã.', ['#0f6c8c', '#7fe1c9', '#fffbe0', '#0d4f5e', '#073039', '30%', '28%']],
+    ['Pico Nublado', 'Montanhas', '4 noites', 'Refúgio de pedra lá no alto, chá quente e nuvem passando pela janela.', ['#4a5068', '#c9c3d6', '#ffffff', '#33364a', '#1a1b27', '58%', '22%']],
+    ['Baía Rosa', 'Litoral', '3 noites', 'Falésias rosadas, um farol antigo e o pôr do sol mais demorado da costa.', ['#8a3a6b', '#ff9a8b', '#ffe0c2', '#5c2448', '#2c1023', '50%', '34%']],
+  ];
+
+  const palco = document.getElementById('palco');
+  const texto = document.getElementById('texto');
+  const pontos = document.getElementById('pontos');
+  const total = DESTINOS.length;
+
+  const cartoes = DESTINOS.map(([nome, regiao, noites, , c], i) => {
+    const el = document.createElement('article');
+    el.className = 'cartao';
+    el.setAttribute('aria-label', `${nome}, ${regiao}`);
+    el.style.cssText = `--c1:${c[0]};--c2:${c[1]};--sol:${c[2]};--m1:${c[3]};--m2:${c[4]};--sx:${c[5]};--sy:${c[6]}`;
+    el.innerHTML = `<div class="arte"><div class="monte"></div><div class="monte b"></div></div>
+      <div class="brilho"></div>
+      <div class="rotulo"><small>${regiao}</small><b>${nome}</b><span>${noites}</span></div>`;
+    el.addEventListener('click', () => { if (!arrastou) ir(i); });
+    palco.appendChild(el);
+    return el;
+  });
+  pontos.innerHTML = DESTINOS.map(() => '<i></i>').join('');
+  const bolinhas = [...pontos.children];
+
+  /* ---------------- o estado inteiro é um número ----------------
+     pos = índice contínuo do cartão que está no centro.
+     alvo = onde a mola quer chegar (sempre inteiro depois de soltar). */
+  let pos = 0, vel = 0, alvo = 0;
+  const css = getComputedStyle(document.documentElement);
+  const lerPx = (v) => parseFloat(css.getPropertyValue(v));
+  let PASSO, RECUO, GIRO;
+  function medir() { PASSO = lerPx('--passo'); RECUO = lerPx('--recuo'); GIRO = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--giro')); }
+  medir();
+  addEventListener('resize', () => { medir(); pintar(); });
+
+  function pintar() {
+    for (let i = 0; i < total; i++) {
+      const d = i - pos;                       // distância contínua ao centro
+      const a = Math.abs(d);
+      const el = cartoes[i];
+      if (a > 3.6) { el.style.visibility = 'hidden'; continue; }
+      el.style.visibility = 'visible';
+      // o deslocamento lateral cresce menos que linear: os de trás se amontoam
+      const x = Math.sign(d) * PASSO * (a < 1 ? a : 1 + (a - 1) * .62);
+      const z = -RECUO * a;
+      const r = -Math.max(-1.6, Math.min(1.6, d)) * GIRO;
+      el.style.transform = `translate3d(${x}px,0,${z}px) rotateY(${r}deg)`;
+      el.style.opacity = String(Math.max(0, 1 - Math.max(0, a - 2.2) * .9));
+      // desfoque e escurecer só a partir de meio cartão — blur em tudo custa caro
+      const f = Math.max(0, a - .5);
+      el.style.filter = f > 0 ? `blur(${(f * 2.2).toFixed(2)}px) brightness(${(1 - Math.min(.45, f * .22)).toFixed(3)})` : 'none';
+      // empilhamento pela distância: o da frente nunca fica atrás do vizinho
+      el.style.zIndex = String(100 - Math.round(a * 10));
+    }
+    const atual = ((Math.round(pos) % total) + total) % total;
+    bolinhas.forEach((b, i) => b.classList.toggle('ativo', i === atual));
+    if (texto.dataset.i !== String(atual)) {
+      texto.dataset.i = atual;
+      texto.textContent = DESTINOS[atual][3];
+    }
+  }
+
+  /* ---------------- mola ----------------
+     k e c escolhidos para pousar sem quicar visivelmente (quase crítico). */
+  const K = 120, C = 21;
+  let rodando = false, ultimo = 0, segurando = false;
+  function quadro(t) {
+    const dt = Math.min(.032, (t - ultimo) / 1000 || .016);
+    ultimo = t;
+    if (!segurando) {
+      const acel = K * (alvo - pos) - C * vel;
+      vel += acel * dt;
+      pos += vel * dt;
+      if (Math.abs(alvo - pos) < .0005 && Math.abs(vel) < .0005) { pos = alvo; vel = 0; }
+    }
+    pintar();
+    if (segurando || pos !== alvo) requestAnimationFrame(quadro);
+    else rodando = false;
+  }
+  function animar() {
+    if (reduzido) { pos = alvo; vel = 0; pintar(); return; }
+    if (rodando) return;
+    rodando = true; ultimo = performance.now();
+    requestAnimationFrame(quadro);
+  }
+  const limitar = (v) => Math.max(0, Math.min(total - 1, v));
+  function ir(i) { alvo = limitar(i); animar(); }
+
+  /* ---------------- arrasto com inércia ---------------- */
+  let inicioX = 0, inicioPos = 0, arrastou = false, amostras = [];
+  palco.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    segurando = true; arrastou = false;
+    inicioX = e.clientX; inicioPos = pos; vel = 0;
+    amostras = [[performance.now(), pos]];
+    palco.setPointerCapture(e.pointerId);
+    palco.classList.add('arrastando');
+    animar();
+  });
+  palco.addEventListener('pointermove', (e) => {
+    if (!segurando) return;
+    const dx = e.clientX - inicioX;
+    if (Math.abs(dx) > 4) arrastou = true;
+    let p = inicioPos - dx / (PASSO * 1.15);
+    // passando das pontas, resiste (borracha) em vez de travar seco
+    if (p < 0) p = p * .35;
+    if (p > total - 1) p = total - 1 + (p - total + 1) * .35;
+    pos = p;
+    amostras.push([performance.now(), pos]);
+    if (amostras.length > 6) amostras.shift();
+  });
+  function soltar() {
+    if (!segurando) return;
+    segurando = false;
+    palco.classList.remove('arrastando');
+    // velocidade média dos últimos ~100 ms vira o empurrão final
+    const [t0, p0] = amostras[0], [t1, p1] = amostras[amostras.length - 1];
+    const v = t1 > t0 ? (p1 - p0) / ((t1 - t0) / 1000) : 0;
+    vel = v;
+    alvo = limitar(Math.round(pos + v * .18));
+    animar();
+    setTimeout(() => { arrastou = false; }, 0);
+  }
+  palco.addEventListener('pointerup', soltar);
+  palco.addEventListener('pointercancel', soltar);
+
+  /* roda do mouse: acumula e anda um cartão por "batida" */
+  let acumulado = 0, travaRoda = 0;
+  palco.addEventListener('wheel', (e) => {
+    const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    e.preventDefault();
+    acumulado += d;
+    const agora = performance.now();
+    if (Math.abs(acumulado) > 40 && agora > travaRoda) {
+      ir(Math.round(alvo) + Math.sign(acumulado));
+      acumulado = 0; travaRoda = agora + 180;
+    }
+  }, { passive: false });
+
+  palco.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') { ir(Math.round(alvo) + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { ir(Math.round(alvo) - 1); e.preventDefault(); }
+  });
+  document.getElementById('antes').addEventListener('click', () => ir(Math.round(alvo) - 1));
+  document.getElementById('depois').addEventListener('click', () => ir(Math.round(alvo) + 1));
+  bolinhas.forEach((b, i) => b.addEventListener('click', () => ir(i)));
+
+  // começa pelo meio, entrando de leve da direita
+  alvo = 3;
+  pos = reduzido ? 3 : 5.2;
+  pintar();
+  animar();
+})();
+</script>
+</body>
+</html>

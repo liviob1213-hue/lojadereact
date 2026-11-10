@@ -1,6 +1,8 @@
 # Efeitos de Interface
 
-Catorze efeitos de interface, cada um numa pasta, cada um num arquivo só.
+Vinte efeitos de interface, cada um numa pasta, cada um num arquivo só. Do 15 ao 20,
+cada pasta também traz um documento `.txt` (abre no Bloco de Notas) com o passo a passo e o
+código completo.
 
 **Para ver:** abra `index.html` (a loja, com a prévia ao vivo de cada efeito dentro do cartão)
 com dois cliques, ou entre em qualquer pasta e abra o `index.html` dela. A galeria em formato
@@ -22,7 +24,7 @@ node ferramentas/gerar-previas.mjs
 ```
 
 Rode isso **toda vez que mexer num efeito**, antes do commit. Sem isso o site continua
-mostrando a versão anterior. As pastas `01-` a `14-`, o `LEIAME.md` e o `catalogo.html`
+mostrando a versão anterior. As pastas `01-` a `20-`, o `LEIAME.md` e o `catalogo.html`
 ficam de fora do deploy pelo `.vercelignore`.
 
 Para ver a loja localmente (o `fetch` das prévias não funciona abrindo o arquivo direto):
@@ -44,7 +46,7 @@ O comentário no topo de cada `index.html` diz quatro coisas:
 Os comentários dentro do código explicam as partes que não se adivinha lendo — por que a conta é
 aquela, por que a ordem importa, por que não dá para fazer do jeito óbvio.
 
-## Os catorze
+## Os vinte
 
 | # | efeito | referência | a técnica que importa |
 |---|---|---|---|
@@ -62,6 +64,18 @@ aquela, por que a ordem importa, por que não dá para fazer do jeito óbvio.
 | 12 | [Lateral de vidro](12-lateral-de-vidro/index.html) | Glassy SideBar V5 | largura com mola e `ResizeObserver` para o indicador seguir enquanto ela se mexe |
 | 13 | [Kanban com fantasma](13-kanban-fantasma/index.html) | Admin Dashboard Orders | clone fixo seguindo o ponteiro + `elementFromPoint` para achar a coluna + FLIP no pouso |
 | 14 | [Pílula que estica](14-pilula-que-estica/index.html) | Sales CRM | `clip-path: inset()` com cada borda num tempo próprio: a da frente chega antes, a de trás alcança depois |
+| 15 | [Carrossel em profundidade](15-carrossel-em-profundidade/index.html) | ideia de "depth carousel", escrito do zero | um número contínuo (a posição) define tudo; mola com inércia; z-index pela distância ao centro |
+| 16 | [Imagem que ondula](16-imagem-que-ondula/index.html) | ideia de "ripple distortion", escrito do zero | cena desenhada uma vez em canvas 2D e usada como textura num shader WebGL que soma até 16 ondas |
+| 17 | [Sanfona de painéis](17-sanfona-de-paineis/index.html) | ideia de "flex carousel", escrito do zero | `flex-grow` animado; o miolo tem largura fixa e é revelado, não espremido |
+| 18 | [Persiana viva](18-persiana-viva/index.html) | ideia de "micro slats", escrito do zero | canvas 2D, uma ripa por célula; ângulo = onda + gaussiana do ponteiro + anéis do clique |
+| 19 | [Fragmentadora](19-fragmentadora/index.html) | ideia de "shredder", escrito do zero | o papel recortado acima da boca + N cópias recortadas em tiras abaixo dela, giradas em volta da boca |
+| 20 | [Cartão que vira](20-cartao-que-vira/index.html) | ideia de "flip card", escrito do zero | mola no ângulo (passa do ponto e volta); altura e sombra pelo seno do ângulo; inclinação em outra camada |
+
+Os documentos `.txt` do 15 ao 20 são gerados a partir do `index.html` de cada pasta:
+
+```
+node ferramentas/gerar-notas.mjs
+```
 
 ## O que vale para todos
 

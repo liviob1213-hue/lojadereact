@@ -1,0 +1,390 @@
+﻿========================================================================
+  FULGOR · EFEITO 20 — CARTÃO QUE VIRA
+  Efeito de interface em HTML, CSS e JavaScript puros · R$ 7,90
+========================================================================
+
+O QUE É
+Cartão com frente e verso que gira em 3D com peso: passa um pouco do ponto e volta, levanta da mesa no meio do giro e o brilho corre pela superfície.
+
+ONDE SE APLICA
+Página de exemplo: "pague.bem", checkout em que o cartão vira sozinho ao entrar no campo do código de segurança.
+Serve também para: checkout, cartão de visita, planos com detalhes no verso, quiz, cartas de jogo.
+
+COMO MEXER NA PÁGINA DE EXEMPLO
+clicar no cartão, botão "virar", ou entrar no campo do código de segurança. O mouse inclina o cartão.
+
+------------------------------------------------------------------------
+COMO USAR
+------------------------------------------------------------------------
+1. Copie a pasta "20-cartao-que-vira" para o seu projeto
+   (ou copie o código completo do fim deste documento para um arquivo .html).
+2. Abra o index.html com dois cliques. Não precisa instalar nada,
+   não precisa de internet, não tem npm nem build.
+3. Para levar só o efeito para a sua página, copie:
+   - o bloco <style> (as regras marcadas como parte do efeito),
+   - o HTML do componente,
+   - o <script> do fim do arquivo.
+4. Funciona em qualquer site, em React, Vue, Svelte, Next ou dentro
+   de um iframe: não depende de nenhum framework.
+
+Quem ligou "reduzir movimento" no sistema recebe a mesma tela, sem a
+animação (prefers-reduced-motion respeitado).
+
+------------------------------------------------------------------------
+TROCAR A CARA DO EFEITO
+------------------------------------------------------------------------
+As cores, tamanhos e tempos ficam nas variáveis do :root, no começo do
+<style>. Mexer nelas muda o efeito inteiro sem tocar no resto:
+
+    --fundo: #0e0f13;
+    --placa: #15171d;
+    --texto: #f3f4f7;
+    --texto-2: rgba(243, 244, 247, .64);
+    --texto-3: rgba(243, 244, 247, .4);
+    --linha: rgba(255, 255, 255, .1);
+    --acento: #7c8cff;
+    --cartao-1: #2b2f86;
+    --cartao-2: #8a4bd6;
+    --cartao-3: #ff8f6b;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+------------------------------------------------------------------------
+FICHA TÉCNICA (o que define o efeito e como ele foi feito)
+------------------------------------------------------------------------
+EFEITO 20 — Cartão que vira
+Referência: a ideia de "flip card" (um cartão com frente e verso que gira em
+3D). Escrito do zero para a FULGOR, sem código de terceiros.
+
+O que define o efeito:
+  1. o giro tem PESO: ele passa um pouco do ponto e volta, como um objeto de
+     verdade — não para seco no 180°;
+  2. no meio do giro o cartão se levanta da mesa (cresce um pouco e a sombra
+     se espalha), e pousa de novo quando termina;
+  3. o reflexo de luz acompanha o ponteiro e também o ângulo do giro, então o
+     brilho "corre" pela superfície enquanto ele vira;
+  4. o giro tem motivo: ao entrar no campo do código de segurança, o cartão
+     mostra o verso, onde o código fica; ao sair, volta para a frente.
+
+Como é feito: CSS 3D (preserve-3d e backface-visibility) com o ângulo vindo
+de uma mola integrada em JS a cada quadro. A mola é que dá a passada do
+ponto; a altura e a sombra são função do seno do ângulo. A inclinação do
+mouse é somada por cima, em outra camada, para não brigar com o giro.
+
+O que costuma sair errado:
+  - usar transition no rotateY: virar de novo no meio do giro reinicia a
+    animação e o cartão "pula"; com a mola ele só muda de destino;
+  - colocar a inclinação do mouse no mesmo transform do giro: o verso fica
+    espelhado ao inclinar;
+  - esquecer o backface-visibility num dos lados: aparece o texto ao contrário.
+
+========================================================================
+  CÓDIGO COMPLETO — salve como index.html
+========================================================================
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cartão que vira</title>
+<!--
+  EFEITO 20 — Cartão que vira
+  Referência: a ideia de "flip card" (um cartão com frente e verso que gira em
+  3D). Escrito do zero para a FULGOR, sem código de terceiros.
+
+  O que define o efeito:
+    1. o giro tem PESO: ele passa um pouco do ponto e volta, como um objeto de
+       verdade — não para seco no 180°;
+    2. no meio do giro o cartão se levanta da mesa (cresce um pouco e a sombra
+       se espalha), e pousa de novo quando termina;
+    3. o reflexo de luz acompanha o ponteiro e também o ângulo do giro, então o
+       brilho "corre" pela superfície enquanto ele vira;
+    4. o giro tem motivo: ao entrar no campo do código de segurança, o cartão
+       mostra o verso, onde o código fica; ao sair, volta para a frente.
+
+  Como é feito: CSS 3D (preserve-3d e backface-visibility) com o ângulo vindo
+  de uma mola integrada em JS a cada quadro. A mola é que dá a passada do
+  ponto; a altura e a sombra são função do seno do ângulo. A inclinação do
+  mouse é somada por cima, em outra camada, para não brigar com o giro.
+
+  O que costuma sair errado:
+    - usar transition no rotateY: virar de novo no meio do giro reinicia a
+      animação e o cartão "pula"; com a mola ele só muda de destino;
+    - colocar a inclinação do mouse no mesmo transform do giro: o verso fica
+      espelhado ao inclinar;
+    - esquecer o backface-visibility num dos lados: aparece o texto ao contrário.
+-->
+<style>
+  :root {
+    --fundo: #0e0f13;
+    --placa: #15171d;
+    --texto: #f3f4f7;
+    --texto-2: rgba(243, 244, 247, .64);
+    --texto-3: rgba(243, 244, 247, .4);
+    --linha: rgba(255, 255, 255, .1);
+    --acento: #7c8cff;
+    --cartao-1: #2b2f86;
+    --cartao-2: #8a4bd6;
+    --cartao-3: #ff8f6b;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; min-height: 100vh;
+    background: radial-gradient(50% 60% at 28% 45%, rgba(124, 140, 255, .16), transparent 70%), var(--fundo);
+    display: flex; flex-direction: column;
+  }
+  .topo { display: flex; align-items: center; gap: 12px; padding: 22px 40px; }
+  .marca { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+  .marca em { font-style: normal; color: var(--acento); }
+  .passos { margin-left: auto; display: flex; gap: 18px; font-size: 12.5px; color: var(--texto-3); }
+  .passos b { color: var(--texto); font-weight: 500; }
+  .seguro { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--texto-2); margin-left: 24px; }
+
+  .pagina { flex: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 50px; align-items: center; padding: 10px 60px 40px; max-width: 1240px; width: 100%; margin: 0 auto; }
+
+  /* ---------------- o cartão ---------------- */
+  .mesa { display: grid; place-items: center; perspective: 1500px; }
+  .inclina { transform-style: preserve-3d; transition: transform .5s cubic-bezier(.22,1,.36,1); }
+  .cartao {
+    position: relative; width: 430px; height: 270px; transform-style: preserve-3d; will-change: transform; cursor: pointer;
+  }
+  .lado {
+    position: absolute; inset: 0; border-radius: 22px; overflow: hidden; padding: 26px 28px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background:
+      radial-gradient(80% 120% at 100% 0%, var(--cartao-3), transparent 55%),
+      radial-gradient(90% 120% at 0% 100%, var(--cartao-2), transparent 60%),
+      linear-gradient(135deg, var(--cartao-1), #14163a);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .verso { transform: rotateY(180deg); padding: 0; }
+  /* brilho: posição vem do ponteiro e do ângulo do giro */
+  .lado::after {
+    content: ""; position: absolute; inset: -40%; pointer-events: none; mix-blend-mode: soft-light;
+    background: radial-gradient(30% 30% at var(--bx, 30%) var(--by, 20%), rgba(255,255,255,.75), transparent 70%);
+  }
+  .sombra { position: absolute; left: 8%; right: 8%; bottom: -30px; height: 40px; border-radius: 50%; background: rgba(0,0,0,.7); filter: blur(18px); transform: translateZ(-60px); }
+
+  .frente .topo-c { display: flex; justify-content: space-between; align-items: center; }
+  .chip { width: 46px; height: 34px; border-radius: 7px; background: linear-gradient(135deg, #f4d58d, #b88a3c); position: relative; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+  .chip::before { content: ""; position: absolute; inset: 8px 0; border-top: 1px solid rgba(0,0,0,.25); border-bottom: 1px solid rgba(0,0,0,.25); }
+  .chip::after { content: ""; position: absolute; inset: 0 15px; border-left: 1px solid rgba(0,0,0,.25); border-right: 1px solid rgba(0,0,0,.25); }
+  .bandeira { display: flex; }
+  .bandeira i { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.85); mix-blend-mode: overlay; }
+  .bandeira i + i { margin-left: -12px; background: rgba(255,255,255,.55); }
+  .numero { margin-top: 44px; font-family: var(--mono); font-size: 25px; letter-spacing: .1em; text-shadow: 0 2px 6px rgba(0,0,0,.35); white-space: nowrap; }
+  .numero span { display: inline-block; transition: transform .25s cubic-bezier(.34,1.56,.64,1), opacity .2s; }
+  .numero span.nova { transform: translateY(-8px); opacity: 0; }
+  .base { display: flex; justify-content: space-between; margin-top: 26px; }
+  .base small { display: block; font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.6); }
+  .base b { font-family: var(--mono); font-size: 15px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+  .tarja { height: 50px; margin-top: 30px; background: #0b0b10; }
+  .assinatura { display: flex; align-items: center; gap: 12px; margin: 22px 28px 0; }
+  .assinatura i { flex: 1; height: 42px; border-radius: 4px; background: repeating-linear-gradient(-45deg, #f4f1ea 0 6px, #e6e1d6 6px 12px); }
+  .cvv { width: 72px; height: 42px; border-radius: 6px; background: #fff; color: #111; font-family: var(--mono); font-size: 18px; display: grid; place-items: center; letter-spacing: .12em; box-shadow: 0 0 0 0 var(--acento); transition: box-shadow .3s; }
+  .cartao.no-cvv .cvv { box-shadow: 0 0 0 3px var(--acento); }
+  .verso p { margin: 18px 28px 0; font-size: 9.5px; line-height: 1.5; color: rgba(255,255,255,.6); }
+
+  .dica { margin-top: 44px; text-align: center; font-size: 12px; color: var(--texto-3); }
+  .dica button { border: 0; background: rgba(255,255,255,.06); color: var(--texto); padding: 7px 13px; border-radius: 999px; font: inherit; cursor: pointer; margin-left: 6px; box-shadow: inset 0 0 0 1px var(--linha); }
+
+  /* ---------------- o formulário ---------------- */
+  .form { padding: 30px; border-radius: 22px; background: var(--placa); box-shadow: inset 0 0 0 1px var(--linha), 0 40px 80px -50px #000; }
+  .form h1 { margin: 0 0 4px; font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+  .form > p { margin: 0 0 22px; color: var(--texto-2); font-size: 13px; }
+  .campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .campo label { font-size: 11.5px; color: var(--texto-2); }
+  .campo input {
+    width: 100%; min-width: 0;
+    font: 15px var(--mono); color: var(--texto); background: rgba(255,255,255,.04); border: 0; border-radius: 12px; padding: 13px 14px;
+    box-shadow: inset 0 0 0 1px var(--linha); outline: none; transition: box-shadow .25s, background .25s;
+  }
+  .campo input:focus { box-shadow: inset 0 0 0 1.5px var(--acento); background: rgba(124,140,255,.07); }
+  .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .resumo { display: flex; justify-content: space-between; padding: 14px 0; margin: 6px 0 16px; border-top: 1px dashed var(--linha); font-size: 13px; color: var(--texto-2); }
+  .resumo b { color: var(--texto); font-size: 18px; font-family: var(--serif); }
+  .pagar { width: 100%; padding: 15px; border: 0; border-radius: 14px; cursor: pointer; font: 600 14.5px var(--sans); color: #0d0f2a; background: linear-gradient(180deg, #a6b1ff, var(--acento)); box-shadow: 0 16px 30px -16px rgba(124,140,255,.9); transition: transform .3s cubic-bezier(.22,1,.36,1); }
+  .pagar:hover { transform: translateY(-2px); }
+  .nota { margin: 12px 0 0; font-size: 11px; color: var(--texto-3); text-align: center; }
+
+  @media (max-width: 900px) {
+    .pagina { grid-template-columns: minmax(0, 1fr); padding: 10px 18px 30px; gap: 30px; }
+    .passos, .seguro { display: none; }
+    .cartao { width: 320px; height: 200px; }
+    .numero { font-size: 18px; margin-top: 26px; }
+    .base { margin-top: 16px; }
+    .lado { padding: 18px 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .inclina, .numero span { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca">pague<em>.</em>bem</div>
+    <div class="passos"><span>1 · Carrinho</span><span>2 · Entrega</span><b>3 · Pagamento</b></div>
+    <div class="seguro"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>conexão protegida</div>
+  </header>
+
+  <main class="pagina">
+    <section>
+      <div class="mesa">
+        <div class="inclina" id="inclina">
+          <div class="cartao" id="cartao" role="img" aria-label="Pré-visualização do cartão">
+            <div class="sombra" id="sombra"></div>
+            <div class="lado frente">
+              <div class="topo-c"><div class="chip"></div><div class="bandeira"><i></i><i></i></div></div>
+              <div class="numero" id="vNumero"></div>
+              <div class="base">
+                <div><small>titular</small><b id="vNome">SEU NOME AQUI</b></div>
+                <div><small>validade</small><b id="vVal">MM/AA</b></div>
+              </div>
+            </div>
+            <div class="lado verso">
+              <div class="tarja"></div>
+              <div class="assinatura"><i></i><div class="cvv" id="vCvv">•••</div></div>
+              <p>Cartão de demonstração. Nenhum dado digitado aqui sai desta página.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="dica">clique no cartão ou entre no campo do código para virar <button id="virar">virar</button></p>
+    </section>
+
+    <form class="form" id="form" autocomplete="off" onsubmit="return false">
+      <h1>Pagamento</h1>
+      <p>Assinatura anual · plano Estúdio</p>
+      <div class="campo"><label for="fNum">Número do cartão</label><input id="fNum" inputmode="numeric" placeholder="0000 0000 0000 0000" maxlength="19" /></div>
+      <div class="campo"><label for="fNome">Nome impresso</label><input id="fNome" placeholder="Como está no cartão" maxlength="24" /></div>
+      <div class="dupla">
+        <div class="campo"><label for="fVal">Validade</label><input id="fVal" inputmode="numeric" placeholder="MM/AA" maxlength="5" /></div>
+        <div class="campo"><label for="fCvv">Código de segurança</label><input id="fCvv" inputmode="numeric" placeholder="•••" maxlength="3" /></div>
+      </div>
+      <div class="resumo"><span>Total hoje</span><b>R$ 129,00</b></div>
+      <button class="pagar" id="pagar" type="button">Pagar R$ 129,00</button>
+      <p class="nota">Demonstração: o botão não cobra nada.</p>
+    </form>
+  </main>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cartao = document.getElementById('cartao');
+  const inclina = document.getElementById('inclina');
+  const sombra = document.getElementById('sombra');
+  const lados = [...cartao.querySelectorAll('.lado')];
+
+  /* ---------------- o giro: uma mola no ângulo ----------------
+     Pouco amortecida de propósito (passa ~6° do ponto e volta). */
+  const K = 140, C = 13;
+  let ang = 0, vel = 0, alvo = 0, rodando = false, ultimo = 0;
+  let bx = 30, by = 20;                     // brilho vindo do ponteiro (%)
+
+  function pintar() {
+    const s = Math.abs(Math.sin(ang * Math.PI / 180));   // 0 parado, 1 de lado
+    const sobe = 1 + s * .07;
+    cartao.style.transform = `translateZ(${s * 60}px) rotateY(${ang}deg) scale(${sobe})`;
+    sombra.style.opacity = String(.85 - s * .45);
+    sombra.style.filter = `blur(${18 + s * 22}px)`;
+    // o brilho corre pela face conforme o ângulo
+    const corre = ((ang % 360) + 360) % 360 / 180 * 60;
+    lados.forEach((l) => {
+      l.style.setProperty('--bx', (bx + corre) + '%');
+      l.style.setProperty('--by', by + '%');
+    });
+  }
+
+  function quadro(t) {
+    const dt = Math.min(.032, (t - ultimo) / 1000 || .016);
+    ultimo = t;
+    vel += (K * (alvo - ang) - C * vel) * dt;
+    ang += vel * dt;
+    if (Math.abs(alvo - ang) < .05 && Math.abs(vel) < .05) { ang = alvo; vel = 0; }
+    pintar();
+    if (ang !== alvo) requestAnimationFrame(quadro); else rodando = false;
+  }
+  function virarPara(verso) {
+    // sempre gira no mesmo sentido: de 0 vai a 180, de 180 vai a 360 (que é 0)
+    const querVerso = verso;
+    const estaVerso = Math.round(alvo / 180) % 2 !== 0;
+    if (querVerso === estaVerso) return;
+    alvo += 180;
+    if (reduzido) { ang = alvo; pintar(); return; }
+    if (!rodando) { rodando = true; ultimo = performance.now(); requestAnimationFrame(quadro); }
+  }
+  const noVerso = () => Math.round(alvo / 180) % 2 !== 0;
+
+  /* ---------------- inclinação do mouse: outra camada ---------------- */
+  const mesa = document.querySelector('.mesa');
+  if (!reduzido && matchMedia('(hover:hover)').matches) {
+    mesa.addEventListener('pointermove', (e) => {
+      const r = cartao.getBoundingClientRect();
+      const fx = (e.clientX - r.left) / r.width - .5, fy = (e.clientY - r.top) / r.height - .5;
+      inclina.style.transform = `rotateX(${(-fy * 12).toFixed(2)}deg) rotateY(${(fx * 14).toFixed(2)}deg)`;
+      bx = 50 + fx * 70; by = 50 + fy * 70;
+      if (!rodando) pintar();
+    });
+    mesa.addEventListener('pointerleave', () => { inclina.style.transform = ''; bx = 30; by = 20; if (!rodando) pintar(); });
+  }
+
+  cartao.addEventListener('click', () => virarPara(!noVerso()));
+  document.getElementById('virar').addEventListener('click', () => virarPara(!noVerso()));
+
+  /* ---------------- formulário ligado ao cartão ---------------- */
+  const fNum = document.getElementById('fNum'), fNome = document.getElementById('fNome');
+  const fVal = document.getElementById('fVal'), fCvv = document.getElementById('fCvv');
+  const vNumero = document.getElementById('vNumero'), vNome = document.getElementById('vNome');
+  const vVal = document.getElementById('vVal'), vCvv = document.getElementById('vCvv');
+
+  // cada dígito é um span: o que acabou de entrar desce de leve no lugar
+  let anterior = '';
+  function pintarNumero() {
+    const dig = fNum.value.replace(/\D/g, '').slice(0, 16);
+    fNum.value = dig.replace(/(\d{4})(?=\d)/g, '$1 ');
+    const mostra = (dig + '•'.repeat(16 - dig.length)).replace(/(.{4})(?=.)/g, '$1 ');
+    vNumero.innerHTML = [...mostra].map((c, i) => `<span${i >= anterior.length && c !== '•' && c !== ' ' && !reduzido ? ' class="nova"' : ''}>${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+    anterior = dig.replace(/(\d{4})(?=\d)/g, '$1 ');
+    requestAnimationFrame(() => vNumero.querySelectorAll('.nova').forEach((s) => s.classList.remove('nova')));
+  }
+  fNum.addEventListener('input', pintarNumero);
+  fNome.addEventListener('input', () => { vNome.textContent = fNome.value.trim().toUpperCase() || 'SEU NOME AQUI'; });
+  fVal.addEventListener('input', () => {
+    const d = fVal.value.replace(/\D/g, '').slice(0, 4);
+    fVal.value = d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
+    vVal.textContent = fVal.value || 'MM/AA';
+  });
+  fCvv.addEventListener('input', () => {
+    fCvv.value = fCvv.value.replace(/\D/g, '').slice(0, 3);
+    vCvv.textContent = fCvv.value ? '•'.repeat(fCvv.value.length) : '•••';
+  });
+  // o motivo do giro: o código fica atrás
+  fCvv.addEventListener('focus', () => { cartao.classList.add('no-cvv'); virarPara(true); });
+  fCvv.addEventListener('blur', () => { cartao.classList.remove('no-cvv'); virarPara(false); });
+  [fNum, fNome, fVal].forEach((f) => f.addEventListener('focus', () => virarPara(false)));
+
+  document.getElementById('pagar').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    b.textContent = 'Pagamento de demonstração ✓';
+    setTimeout(() => { b.textContent = 'Pagar R$ 129,00'; }, 2200);
+  });
+
+  pintarNumero();
+  pintar();
+  // na vitrine, mostra o giro uma vez sozinho
+  if (!reduzido) { setTimeout(() => virarPara(true), 1100); setTimeout(() => virarPara(false), 2600); }
+})();
+</script>
+</body>
+</html>
+
+========================================================================
+  © 2026 FULGOR · Efeitos de interface. Uso liberado nos seus projetos e
+  nos projetos dos seus clientes. Não é permitido revender este arquivo.
+========================================================================

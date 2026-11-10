@@ -1,0 +1,285 @@
+﻿========================================================================
+  FULGOR · EFEITO 18 — PERSIANA VIVA
+  Efeito de interface em HTML, CSS e JavaScript puros · R$ 7,90
+========================================================================
+
+O QUE É
+Fundo feito de milhares de ripas finas que giram como uma fachada cinética. Uma onda lenta atravessa a grade o tempo todo, o mouse vira as ripas em volta dele e o clique solta um anel.
+
+ONDE SE APLICA
+Página de exemplo: "LÂMINA", estúdio de arquitetura cinética.
+Serve também para: fundo de hero, tela de login, página de lançamento, seção de destaque.
+
+COMO MEXER NA PÁGINA DE EXEMPLO
+mover o mouse sobre o fundo e clicar para soltar uma onda.
+
+------------------------------------------------------------------------
+COMO USAR
+------------------------------------------------------------------------
+1. Copie a pasta "18-persiana-viva" para o seu projeto
+   (ou copie o código completo do fim deste documento para um arquivo .html).
+2. Abra o index.html com dois cliques. Não precisa instalar nada,
+   não precisa de internet, não tem npm nem build.
+3. Para levar só o efeito para a sua página, copie:
+   - o bloco <style> (as regras marcadas como parte do efeito),
+   - o HTML do componente,
+   - o <script> do fim do arquivo.
+4. Funciona em qualquer site, em React, Vue, Svelte, Next ou dentro
+   de um iframe: não depende de nenhum framework.
+
+Quem ligou "reduzir movimento" no sistema recebe a mesma tela, sem a
+animação (prefers-reduced-motion respeitado).
+
+------------------------------------------------------------------------
+TROCAR A CARA DO EFEITO
+------------------------------------------------------------------------
+As cores, tamanhos e tempos ficam nas variáveis do :root, no começo do
+<style>. Mexer nelas muda o efeito inteiro sem tocar no resto:
+
+    --fundo: #07110f;
+    --face-clara: 232, 240, 226;      /* rgb da face que pega luz */
+    --face-escura: 18, 52, 46;        /* rgb da face de trás */
+    --acento: 214, 255, 98;           /* rgb do brilho perto do ponteiro */
+    --celula-l: 12;                   /* largura da célula, em px */
+    --celula-a: 30;                   /* altura da célula, em px */
+    --texto: #f1f6ee;
+    --texto-2: rgba(241, 246, 238, .7);
+    --texto-3: rgba(241, 246, 238, .45);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+
+------------------------------------------------------------------------
+FICHA TÉCNICA (o que define o efeito e como ele foi feito)
+------------------------------------------------------------------------
+EFEITO 18 — Persiana viva
+Referência: a ideia de "micro slats" (um fundo feito de milhares de ripas
+pequenas que giram, como uma fachada cinética). Escrito do zero para a
+FULGOR, sem código de terceiros.
+
+O que define o efeito:
+  1. o fundo é uma GRADE de ripas finas; cada ripa gira no próprio eixo
+     vertical, e o giro aparece como a ripa ficando mais estreita e mudando de
+     face (a clara de um lado, a escura do outro);
+  2. uma onda lenta atravessa a grade o tempo todo, então o fundo "respira"
+     mesmo sem ninguém mexer;
+  3. o mouse vira as ripas em volta dele, com uma borda macia — não um círculo
+     recortado — e quando ele sai elas voltam devagar;
+  4. o clique solta um anel que vira as ripas por onde passa.
+
+Como é feito: um <canvas> 2D com uma ripa por célula. O ângulo de cada ripa é
+a soma de três coisas: a onda de fundo, a influência do ponteiro (gaussiana) e
+os anéis de clique. A largura desenhada é |cos(ângulo)| e a face é o sinal do
+cosseno. Um número por ripa, nenhum objeto por ripa.
+
+O que costuma sair errado:
+  - criar um elemento DOM por ripa: com 3 mil ripas, o layout trava;
+  - seguir o mouse sem suavizar: a área vira um carimbo que pula de lugar.
+    Aqui o ponteiro tem posição e presença suavizadas a cada quadro;
+  - esquecer da densidade de pixels: em tela retina as ripas ficam borradas.
+
+========================================================================
+  CÓDIGO COMPLETO — salve como index.html
+========================================================================
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Persiana viva</title>
+<!--
+  EFEITO 18 — Persiana viva
+  Referência: a ideia de "micro slats" (um fundo feito de milhares de ripas
+  pequenas que giram, como uma fachada cinética). Escrito do zero para a
+  FULGOR, sem código de terceiros.
+
+  O que define o efeito:
+    1. o fundo é uma GRADE de ripas finas; cada ripa gira no próprio eixo
+       vertical, e o giro aparece como a ripa ficando mais estreita e mudando de
+       face (a clara de um lado, a escura do outro);
+    2. uma onda lenta atravessa a grade o tempo todo, então o fundo "respira"
+       mesmo sem ninguém mexer;
+    3. o mouse vira as ripas em volta dele, com uma borda macia — não um círculo
+       recortado — e quando ele sai elas voltam devagar;
+    4. o clique solta um anel que vira as ripas por onde passa.
+
+  Como é feito: um <canvas> 2D com uma ripa por célula. O ângulo de cada ripa é
+  a soma de três coisas: a onda de fundo, a influência do ponteiro (gaussiana) e
+  os anéis de clique. A largura desenhada é |cos(ângulo)| e a face é o sinal do
+  cosseno. Um número por ripa, nenhum objeto por ripa.
+
+  O que costuma sair errado:
+    - criar um elemento DOM por ripa: com 3 mil ripas, o layout trava;
+    - seguir o mouse sem suavizar: a área vira um carimbo que pula de lugar.
+      Aqui o ponteiro tem posição e presença suavizadas a cada quadro;
+    - esquecer da densidade de pixels: em tela retina as ripas ficam borradas.
+-->
+<style>
+  :root {
+    --fundo: #07110f;
+    --face-clara: 232, 240, 226;      /* rgb da face que pega luz */
+    --face-escura: 18, 52, 46;        /* rgb da face de trás */
+    --acento: 214, 255, 98;           /* rgb do brilho perto do ponteiro */
+    --celula-l: 12;                   /* largura da célula, em px */
+    --celula-a: 30;                   /* altura da célula, em px */
+    --texto: #f1f6ee;
+    --texto-2: rgba(241, 246, 238, .7);
+    --texto-3: rgba(241, 246, 238, .45);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--fundo); }
+  body { color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  /* véu no meio: o texto fica legível sem apagar a grade nas bordas */
+  .veu { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(46% 42% at 50% 52%, rgba(7,17,15,.92), rgba(7,17,15,.55) 55%, transparent 80%); }
+
+  .topo { position: fixed; inset: 0 0 auto 0; display: flex; align-items: center; gap: 26px; padding: 22px 36px; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: .12em; }
+  .marca i { display: flex; gap: 2px; }
+  .marca i b { width: 3px; height: 18px; border-radius: 2px; background: rgb(var(--acento)); }
+  .marca i b:nth-child(2) { transform: scaleX(.5); }
+  .marca i b:nth-child(3) { transform: scaleX(.2); }
+  .topo nav { display: flex; gap: 22px; margin-left: auto; font-size: 13px; color: var(--texto-2); }
+  .topo .botao { margin-left: 10px; }
+
+  .hero { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+  .hero > div { pointer-events: auto; max-width: 720px; padding: 0 20px; }
+  .selo { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; border-radius: 999px; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgb(var(--acento)); background: rgba(214,255,98,.08); box-shadow: inset 0 0 0 1px rgba(214,255,98,.3); }
+  .selo i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--acento)); box-shadow: 0 0 10px rgb(var(--acento)); }
+  h1 { margin: 22px 0 16px; font-family: var(--serif); font-weight: 600; font-size: 66px; line-height: .98; letter-spacing: -.04em; }
+  h1 em { font-style: italic; color: rgb(var(--acento)); }
+  .hero p { margin: 0 auto 28px; max-width: 48ch; color: var(--texto-2); font-size: 15.5px; }
+  .acoes { display: flex; gap: 10px; justify-content: center; }
+  .botao { padding: 12px 20px; border-radius: 999px; border: 0; cursor: pointer; font: 600 13.5px var(--sans); color: #12180a; background: rgb(var(--acento)); box-shadow: 0 12px 30px -14px rgba(214,255,98,.8); transition: transform .3s cubic-bezier(.22,1,.36,1); }
+  .botao:hover { transform: translateY(-2px); }
+  .botao.vazio { color: var(--texto); background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); backdrop-filter: blur(8px); }
+  .numeros { position: fixed; left: 36px; right: 36px; bottom: 30px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--texto-3); pointer-events: none; }
+  .numeros b { color: var(--texto); font-weight: 500; margin-right: 6px; }
+
+  @media (max-width: 760px) {
+    .topo nav { display: none; }
+    .topo .botao { margin-left: auto; }
+    h1 { font-size: 42px; }
+    .numeros span:nth-child(n+3) { display: none; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="tela" aria-hidden="true"></canvas>
+  <div class="veu"></div>
+
+  <header class="topo">
+    <div class="marca"><i><b></b><b></b><b></b></i>LÂMINA</div>
+    <nav><span>Estúdio</span><span>Projetos</span><span>Processo</span><span>Contato</span></nav>
+    <button class="botao vazio">Falar com a gente</button>
+  </header>
+
+  <main class="hero">
+    <div>
+      <span class="selo"><i></i>fachadas que respondem</span>
+      <h1>Arquitetura que<br>se <em>mexe</em> com você.</h1>
+      <p>Projetamos fachadas cinéticas que seguem o sol, a hora e quem passa na frente. Mexa o mouse no fundo — e clique para soltar uma onda.</p>
+      <div class="acoes"><button class="botao">Ver projetos</button><button class="botao vazio">Como funciona</button></div>
+    </div>
+  </main>
+
+  <div class="numeros"><span><b>+3 mil</b>ripas nesta tela</span><span><b>12</b>fachadas entregues</span><span><b>0</b>dependências</span></div>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tela = document.getElementById('tela');
+  const ctx = tela.getContext('2d');
+  const css = getComputedStyle(document.documentElement);
+  const rgb = (v) => css.getPropertyValue(v).trim();
+  const CLARA = rgb('--face-clara'), ESCURA = rgb('--face-escura'), ACENTO = rgb('--acento');
+  const CL = parseFloat(css.getPropertyValue('--celula-l'));
+  const CA = parseFloat(css.getPropertyValue('--celula-a'));
+
+  let L = 0, A = 0, dpr = 1, colunas = 0, linhas = 0;
+  function medir() {
+    dpr = Math.min(2, devicePixelRatio || 1);
+    L = innerWidth; A = innerHeight;
+    tela.width = Math.round(L * dpr); tela.height = Math.round(A * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    colunas = Math.ceil(L / CL) + 1;
+    linhas = Math.ceil(A / CA) + 1;
+    if (reduzido) desenhar(4);
+  }
+
+  /* ponteiro suavizado: posição e "presença" (0 fora da tela, 1 dentro) */
+  const alvo = { x: L / 2, y: A / 2, dentro: 0 };
+  const mouse = { x: L / 2, y: A / 2, presenca: 0 };
+  const aneis = [];   // [x, y, nascimento]
+
+  addEventListener('pointermove', (e) => { alvo.x = e.clientX; alvo.y = e.clientY; alvo.dentro = 1; });
+  document.addEventListener('pointerleave', () => { alvo.dentro = 0; });
+  addEventListener('blur', () => { alvo.dentro = 0; });
+  addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    aneis.push([e.clientX, e.clientY, performance.now() / 1000]);
+    if (aneis.length > 6) aneis.shift();
+  });
+
+  const RAIO = 150;                 // alcance do ponteiro (desvio da gaussiana)
+  const VEL_ANEL = 520;             // px por segundo
+  function desenhar(t) {
+    ctx.clearRect(0, 0, L, A);
+    const r2 = 2 * RAIO * RAIO;
+    const vivos = aneis.filter((a) => t - a[2] < 2.4);
+    for (let cx = 0; cx < colunas; cx++) {
+      const x = cx * CL;
+      for (let cy = 0; cy < linhas; cy++) {
+        const y = cy * CA;
+        // 1) a onda de fundo: duas senoides cruzadas, lentas
+        let ang = Math.sin(x * .011 + t * .55) * Math.cos(y * .017 - t * .38) * 1.05 + .35;
+        // 2) o ponteiro vira as ripas em volta, com borda macia
+        const dx = x - mouse.x, dy = y - mouse.y;
+        const perto = Math.exp(-(dx * dx + dy * dy) / r2) * mouse.presenca;
+        ang += perto * Math.PI * .95;
+        // 3) cada anel de clique vira o que está na sua borda
+        for (const a of vivos) {
+          const d = Math.hypot(x - a[0], y - a[1]) - (t - a[2]) * VEL_ANEL;
+          ang += Math.exp(-d * d / 2200) * Math.PI * (1 - (t - a[2]) / 2.4);
+        }
+        const c = Math.cos(ang);
+        const largura = Math.abs(c) * (CL - 4) + .6;
+        // a face muda com o sinal do cosseno; a luz cai de cima para baixo
+        const luz = .32 + .5 * (1 - y / A) * .6 + Math.abs(c) * .3;
+        let cor;
+        if (perto > .18) cor = `rgba(${ACENTO},${(.25 + perto * .7) * Math.abs(c) + .08})`;
+        else if (c > 0) cor = `rgba(${CLARA},${luz * .42})`;
+        else cor = `rgba(${ESCURA},${.55 + luz * .4})`;
+        ctx.fillStyle = cor;
+        ctx.fillRect(x + (CL - largura) / 2, y + 3, largura, CA - 6);
+      }
+    }
+  }
+
+  function quadro(ms) {
+    const t = ms / 1000;
+    // segue o ponteiro com atraso: a área "escorrega" em vez de pular
+    mouse.x += (alvo.x - mouse.x) * .14;
+    mouse.y += (alvo.y - mouse.y) * .14;
+    mouse.presenca += (alvo.dentro - mouse.presenca) * .06;
+    desenhar(t);
+    requestAnimationFrame(quadro);
+  }
+
+  addEventListener('resize', medir);
+  medir();
+  if (!reduzido) requestAnimationFrame(quadro);
+})();
+</script>
+</body>
+</html>
+
+========================================================================
+  © 2026 FULGOR · Efeitos de interface. Uso liberado nos seus projetos e
+  nos projetos dos seus clientes. Não é permitido revender este arquivo.
+========================================================================

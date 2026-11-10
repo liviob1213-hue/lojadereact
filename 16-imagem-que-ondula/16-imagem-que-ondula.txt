@@ -1,0 +1,399 @@
+﻿========================================================================
+  FULGOR · EFEITO 16 — IMAGEM QUE ONDULA
+  Efeito de interface em HTML, CSS e JavaScript puros · R$ 7,90
+========================================================================
+
+O QUE É
+A imagem inteira vira água: o rastro do mouse solta ondas pequenas e o clique solta uma onda grande, com anéis que crescem e somem. O título faz parte da imagem e ondula junto.
+
+ONDE SE APLICA
+Página de exemplo: "Maré", hero de um hotel à beira-mar.
+Serve também para: hero de site, capa de campanha, página de evento, landing page de marca.
+
+COMO MEXER NA PÁGINA DE EXEMPLO
+mover o mouse sobre a imagem, clicar para jogar uma "pedra". Sozinha, a página solta uma gota de tempos em tempos.
+
+------------------------------------------------------------------------
+COMO USAR
+------------------------------------------------------------------------
+1. Copie a pasta "16-imagem-que-ondula" para o seu projeto
+   (ou copie o código completo do fim deste documento para um arquivo .html).
+2. Abra o index.html com dois cliques. Não precisa instalar nada,
+   não precisa de internet, não tem npm nem build.
+3. Para levar só o efeito para a sua página, copie:
+   - o bloco <style> (as regras marcadas como parte do efeito),
+   - o HTML do componente,
+   - o <script> do fim do arquivo.
+4. Funciona em qualquer site, em React, Vue, Svelte, Next ou dentro
+   de um iframe: não depende de nenhum framework.
+
+Quem ligou "reduzir movimento" no sistema recebe a mesma tela, sem a
+animação (prefers-reduced-motion respeitado).
+
+------------------------------------------------------------------------
+TROCAR A CARA DO EFEITO
+------------------------------------------------------------------------
+As cores, tamanhos e tempos ficam nas variáveis do :root, no começo do
+<style>. Mexer nelas muda o efeito inteiro sem tocar no resto:
+
+    --texto: #fff7ef;
+    --texto-2: rgba(255, 247, 239, .72);
+    --texto-3: rgba(255, 247, 239, .5);
+    --acento: #ffb98a;
+    --vidro: rgba(18, 12, 30, .34);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+
+------------------------------------------------------------------------
+FICHA TÉCNICA (o que define o efeito e como ele foi feito)
+------------------------------------------------------------------------
+EFEITO 16 — Imagem que ondula
+Referência: a ideia de "ripple distortion" (ondas de água sobre uma imagem).
+Escrito do zero para a FULGOR, sem código de terceiros.
+
+O que define o efeito:
+  1. a IMAGEM ondula, não uma camada por cima: os pixels são deslocados de
+     verdade, inclusive o título, que faz parte da imagem;
+  2. cada onda é um ANEL que cresce a partir do ponto de origem, com vários
+     cristas, e perde força com o tempo e com a distância — não um tremor;
+  3. o rastro do mouse solta ondas pequenas; o clique solta uma onda grande;
+  4. a borda de cada crista separa levemente o vermelho do azul e ganha um
+     brilho, que é o que faz a gente ler "água" e não "distorção".
+
+Como é feito: a cena é desenhada uma vez num <canvas> 2D (céu, sol, mar e
+título) e enviada como textura para um shader WebGL de tela cheia. O shader
+soma até 16 ondas (posição, hora de nascimento e força) e desloca a leitura da
+textura na direção radial de cada uma. Sem biblioteca, WebGL 1 puro.
+
+O que costuma sair errado:
+  - esquecer da proporção da tela: as ondas viram elipses achatadas;
+  - deslocar sem envelope: a onda nunca morre e a imagem fica "nadando";
+  - redesenhar a cena 2D a cada quadro: o custo está no canvas, não no shader.
+    Aqui ela só é redesenhada quando a janela muda de tamanho.
+Sem WebGL, a página mostra a cena parada, que já é a mesma imagem.
+
+========================================================================
+  CÓDIGO COMPLETO — salve como index.html
+========================================================================
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Imagem que ondula</title>
+<!--
+  EFEITO 16 — Imagem que ondula
+  Referência: a ideia de "ripple distortion" (ondas de água sobre uma imagem).
+  Escrito do zero para a FULGOR, sem código de terceiros.
+
+  O que define o efeito:
+    1. a IMAGEM ondula, não uma camada por cima: os pixels são deslocados de
+       verdade, inclusive o título, que faz parte da imagem;
+    2. cada onda é um ANEL que cresce a partir do ponto de origem, com vários
+       cristas, e perde força com o tempo e com a distância — não um tremor;
+    3. o rastro do mouse solta ondas pequenas; o clique solta uma onda grande;
+    4. a borda de cada crista separa levemente o vermelho do azul e ganha um
+       brilho, que é o que faz a gente ler "água" e não "distorção".
+
+  Como é feito: a cena é desenhada uma vez num <canvas> 2D (céu, sol, mar e
+  título) e enviada como textura para um shader WebGL de tela cheia. O shader
+  soma até 16 ondas (posição, hora de nascimento e força) e desloca a leitura da
+  textura na direção radial de cada uma. Sem biblioteca, WebGL 1 puro.
+
+  O que costuma sair errado:
+    - esquecer da proporção da tela: as ondas viram elipses achatadas;
+    - deslocar sem envelope: a onda nunca morre e a imagem fica "nadando";
+    - redesenhar a cena 2D a cada quadro: o custo está no canvas, não no shader.
+      Aqui ela só é redesenhada quando a janela muda de tamanho.
+  Sem WebGL, a página mostra a cena parada, que já é a mesma imagem.
+-->
+<style>
+  :root {
+    --texto: #fff7ef;
+    --texto-2: rgba(255, 247, 239, .72);
+    --texto-3: rgba(255, 247, 239, .5);
+    --acento: #ffb98a;
+    --vidro: rgba(18, 12, 30, .34);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0c0a18; overflow: hidden; }
+  body { color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+  .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .topo { position: fixed; inset: 0 0 auto 0; display: flex; align-items: center; gap: 24px; padding: 24px 38px; pointer-events: none; }
+  .topo > * { pointer-events: auto; }
+  .marca { font-family: var(--serif); font-size: 18px; font-weight: 600; letter-spacing: .32em; }
+  .topo nav { display: flex; gap: 22px; margin-left: auto; font-size: 13px; color: var(--texto-2); }
+  .topo nav a { color: inherit; text-decoration: none; }
+  .topo nav a:hover { color: var(--texto); }
+  .botao {
+    padding: 11px 20px; border-radius: 999px; border: 0; cursor: pointer; font: 600 13px var(--sans);
+    color: #2a1406; background: linear-gradient(180deg, #ffd2ad, #ff9e6a);
+    box-shadow: 0 12px 30px -14px rgba(255, 140, 80, .9), inset 0 1px 0 rgba(255,255,255,.6);
+    transition: transform .3s cubic-bezier(.22,1,.36,1);
+  }
+  .botao:hover { transform: translateY(-2px); }
+  .botao.vazio { color: var(--texto); background: var(--vidro); backdrop-filter: blur(12px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+
+  .rodape { position: fixed; inset: auto 38px 34px 38px; display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; pointer-events: none; }
+  .rodape > * { pointer-events: auto; }
+  .chamada p { margin: 0 0 16px; max-width: 40ch; color: var(--texto-2); font-size: 14.5px; }
+  .chamada .acoes { display: flex; gap: 10px; }
+  .fichas { display: flex; gap: 10px; }
+  .ficha { padding: 12px 16px; border-radius: 16px; background: var(--vidro); backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); min-width: 120px; }
+  .ficha small { display: block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--texto-3); }
+  .ficha b { font-family: var(--serif); font-size: 22px; font-weight: 600; }
+  .dica { position: fixed; left: 50%; top: 74px; transform: translateX(-50%); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--texto-3); pointer-events: none; transition: opacity .6s; }
+
+  @media (max-width: 760px) {
+    .topo nav { display: none; }
+    .topo .botao { margin-left: auto; }
+    .rodape { flex-direction: column; align-items: stretch; inset: auto 20px 22px 20px; }
+    .fichas { display: none; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="tela" aria-hidden="true"></canvas>
+  <h1 class="so-leitor">Maré — hotel à beira-mar</h1>
+
+  <header class="topo">
+    <div class="marca">MARÉ</div>
+    <nav><a href="#">Quartos</a><a href="#">Restaurante</a><a href="#">Experiências</a><a href="#">Como chegar</a></nav>
+    <button class="botao">Reservar</button>
+  </header>
+
+  <p class="dica" id="dica">passe o mouse na água · clique para jogar uma pedra</p>
+
+  <footer class="rodape">
+    <div class="chamada">
+      <p>Vinte quartos de frente para o mar, café servido na areia e o pôr do sol mais lento da costa. A maré decide o seu horário.</p>
+      <div class="acoes"><button class="botao">Ver datas livres</button><button class="botao vazio">Conhecer os quartos</button></div>
+    </div>
+    <div class="fichas">
+      <div class="ficha"><small>água</small><b>24°</b></div>
+      <div class="ficha"><small>pôr do sol</small><b>18:12</b></div>
+      <div class="ficha"><small>maré</small><b>baixa</b></div>
+    </div>
+  </footer>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tela = document.getElementById('tela');
+  const cena = document.createElement('canvas');      // a imagem, desenhada uma vez
+  const c2 = cena.getContext('2d');
+  let L = 0, A = 0, dpr = 1;
+
+  /* ---------------- a cena (vira textura) ---------------- */
+  function desenharCena() {
+    const w = cena.width, h = cena.height, hz = h * .6;   // linha do horizonte
+    const ceu = c2.createLinearGradient(0, 0, 0, hz);
+    ceu.addColorStop(0, '#191238'); ceu.addColorStop(.45, '#5a2f6e');
+    ceu.addColorStop(.8, '#e7775a'); ceu.addColorStop(1, '#ffc489');
+    c2.fillStyle = ceu; c2.fillRect(0, 0, w, hz);
+
+    // estrelas fracas no alto
+    let s = 7;
+    const acaso = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    c2.fillStyle = 'rgba(255,255,255,.55)';
+    for (let i = 0; i < 90; i++) { const r = acaso() * 1.3 * dpr; c2.globalAlpha = acaso() * .7; c2.beginPath(); c2.arc(acaso() * w, acaso() * hz * .45, r, 0, 7); c2.fill(); }
+    c2.globalAlpha = 1;
+
+    // sol com halo
+    const sx = w * .5, sy = hz - h * .045, sr = h * .085;
+    const halo = c2.createRadialGradient(sx, sy, sr * .6, sx, sy, sr * 4);
+    halo.addColorStop(0, 'rgba(255,214,160,.55)'); halo.addColorStop(1, 'rgba(255,214,160,0)');
+    c2.fillStyle = halo; c2.fillRect(0, 0, w, hz);
+    c2.fillStyle = '#ffe7c4'; c2.beginPath(); c2.arc(sx, sy, sr, 0, 7); c2.fill();
+
+    // morros no horizonte
+    c2.fillStyle = '#3a1f3f';
+    c2.beginPath(); c2.moveTo(0, hz);
+    for (let x = 0; x <= w; x += w / 40) c2.lineTo(x, hz - (Math.sin(x / w * 9) * .5 + .5) * h * .035 - (x < w * .3 ? h * .03 : 0));
+    c2.lineTo(w, hz); c2.fill();
+
+    // mar
+    const mar = c2.createLinearGradient(0, hz, 0, h);
+    mar.addColorStop(0, '#6b3a5e'); mar.addColorStop(.3, '#2b1d48'); mar.addColorStop(1, '#0b0a1b');
+    c2.fillStyle = mar; c2.fillRect(0, hz, w, h - hz);
+
+    // reflexo do sol: faixas horizontais que estreitam para baixo
+    for (let i = 0; i < 26; i++) {
+      const t = i / 26, y = hz + 4 * dpr + t * (h - hz) * .75;
+      const lw = sr * (1.6 - t * 1.1) * (.7 + acaso() * .6);
+      c2.fillStyle = `rgba(255,${200 - t * 60},${150 - t * 50},${.55 - t * .45})`;
+      c2.fillRect(sx - lw + (acaso() - .5) * sr * .5, y, lw * 2, (2 + t * 5) * dpr);
+    }
+
+    // o título faz parte da imagem: é ele que mais mostra a onda passando
+    c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    c2.font = `600 ${Math.round(h * .25)}px "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif`;
+    const tg = c2.createLinearGradient(0, h * .2, 0, h * .5);
+    tg.addColorStop(0, 'rgba(255,248,240,.96)'); tg.addColorStop(1, 'rgba(255,214,180,.75)');
+    c2.fillStyle = tg;
+    c2.fillText('Maré', w / 2, h * .34);
+    c2.font = `500 ${Math.round(h * .018)}px Inter,system-ui,"Segoe UI",sans-serif`;
+    c2.fillStyle = 'rgba(255,240,228,.75)';
+    if ('letterSpacing' in c2) c2.letterSpacing = `${Math.round(h * .008)}px`;
+    c2.fillText('HOTEL À BEIRA-MAR', w / 2, h * .175);
+    if ('letterSpacing' in c2) c2.letterSpacing = '0px';
+  }
+
+  /* ---------------- WebGL ---------------- */
+  const gl = tela.getContext('webgl', { antialias: false, premultipliedAlpha: false });
+  const MAX = 16;
+  const ondas = new Float32Array(MAX * 4);   // x, y, nascimento, força
+  let proxima = 0;
+  const t0 = performance.now();
+  const agora = () => (performance.now() - t0) / 1000;
+
+  function soltarOnda(x, y, forca) {
+    const o = proxima++ % MAX;
+    ondas[o * 4] = x; ondas[o * 4 + 1] = y; ondas[o * 4 + 2] = agora(); ondas[o * 4 + 3] = forca;
+    acordar();
+  }
+
+  let prog, uRes, uT, uOnd, tex;
+  if (gl) {
+    const vs = `attribute vec2 p; varying vec2 v; void main(){ v = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
+    const fs = `precision highp float;
+      uniform sampler2D img; uniform vec2 res; uniform float t; uniform vec4 ond[${MAX}];
+      varying vec2 v;
+      void main(){
+        vec2 asp = vec2(res.x / res.y, 1.);
+        vec2 desl = vec2(0.);
+        for (int i = 0; i < ${MAX}; i++) {
+          vec4 o = ond[i];
+          if (o.w <= 0.) continue;
+          float idade = t - o.z;
+          if (idade < 0. || idade > 3.2) continue;
+          vec2 d = (v - o.xy) * asp;              // distância sem achatar
+          float dist = length(d);
+          float x = dist - idade * .34;           // posição relativa ao anel
+          // envelope: só perto do anel, some com o tempo e com a distância
+          float env = exp(-x * x * 140.) * exp(-idade * 1.5) * o.w / (1. + dist * 3.);
+          desl += d / max(dist, 1e-4) * sin(x * 95.) * env / asp;
+        }
+        vec2 a = v + desl * .03;
+        float r = texture2D(img, a + desl * .006).r;   // separa as cores na crista
+        float g = texture2D(img, a).g;
+        float b = texture2D(img, a - desl * .006).b;
+        float luz = clamp(dot(desl, vec2(-.6, .8)) * 1.4, -.12, .3);
+        gl_FragColor = vec4(vec3(r, g, b) + luz, 1.);
+      }`;
+    const sh = (tipo, src) => { const s = gl.createShader(tipo); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) prog = null;
+  }
+
+  if (prog) {
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    uRes = gl.getUniformLocation(prog, 'res');
+    uT = gl.getUniformLocation(prog, 't');
+    uOnd = gl.getUniformLocation(prog, 'ond');
+    tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // textura de tamanho qualquer: sem mipmap e com borda presa
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  function medir() {
+    dpr = Math.min(2, devicePixelRatio || 1);
+    L = Math.round(innerWidth * dpr); A = Math.round(innerHeight * dpr);
+    cena.width = L; cena.height = A;
+    desenharCena();
+    if (prog) {
+      tela.width = L; tela.height = A;
+      gl.viewport(0, 0, L, A);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, cena);
+      gl.uniform2f(uRes, L, A);
+    } else {
+      // sem WebGL: mostra a cena parada no próprio canvas
+      tela.width = L; tela.height = A;
+      tela.getContext('2d').drawImage(cena, 0, 0);
+    }
+    desenhar();
+  }
+
+  function desenhar() {
+    if (!prog) return;
+    gl.uniform1f(uT, agora());
+    gl.uniform4fv(uOnd, ondas);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // só anima enquanto existe onda viva — parado, não gasta nada
+  let rodando = false;
+  function acordar() {
+    if (rodando || !prog || reduzido) return;
+    rodando = true;
+    requestAnimationFrame(function quadro() {
+      desenhar();
+      const t = agora();
+      let viva = false;
+      for (let i = 0; i < MAX; i++) if (ondas[i * 4 + 3] > 0 && t - ondas[i * 4 + 2] < 3.2) { viva = true; break; }
+      if (viva) requestAnimationFrame(quadro); else rodando = false;
+    });
+  }
+
+  /* ---------------- interação ---------------- */
+  const dica = document.getElementById('dica');
+  let ux = -1, uy = -1, ultimaOnda = 0;
+  const ponto = (e) => [e.clientX / innerWidth, 1 - e.clientY / innerHeight];
+
+  addEventListener('pointermove', (e) => {
+    if (e.target.closest('button, a')) return;
+    const [x, y] = ponto(e);
+    const andou = Math.hypot((x - ux) * innerWidth, (y - uy) * innerHeight);
+    const t = performance.now();
+    // o rastro solta uma onda pequena a cada trecho percorrido, não a cada evento
+    if (andou > 38 && t - ultimaOnda > 60) {
+      soltarOnda(x, y, Math.min(1, andou / 90) * .55);
+      ux = x; uy = y; ultimaOnda = t;
+      dica.style.opacity = '0';
+    }
+  });
+  addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, a')) return;
+    const [x, y] = ponto(e);
+    soltarOnda(x, y, 1.6);
+    dica.style.opacity = '0';
+  });
+
+  // sozinha, a página de vez em quando joga uma gota — a vitrine nunca fica parada
+  let gotaTimer;
+  function gota() {
+    soltarOnda(.25 + Math.random() * .5, .18 + Math.random() * .3, .9);
+    gotaTimer = setTimeout(gota, 2600 + Math.random() * 1800);
+  }
+
+  addEventListener('resize', medir);
+  medir();
+  if (!reduzido) setTimeout(gota, 700);
+})();
+</script>
+</body>
+</html>
+
+========================================================================
+  © 2026 FULGOR · Efeitos de interface. Uso liberado nos seus projetos e
+  nos projetos dos seus clientes. Não é permitido revender este arquivo.
+========================================================================

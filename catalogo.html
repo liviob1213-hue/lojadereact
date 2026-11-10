@@ -43,8 +43,8 @@
 <body>
   <main class="folha">
     <h1>Catálogo de efeitos</h1>
-    <p class="linha-fina">Catorze efeitos de interface, cada um extraído quadro a quadro de um vídeo de
-      referência e reescrito em HTML, CSS e JavaScript puros. Cada pasta abre sozinha, com dois cliques,
+    <p class="linha-fina">Vinte efeitos de interface, cada um a partir de uma
+      referência e escrito em HTML, CSS e JavaScript puros. Cada pasta abre sozinha, com dois cliques,
       sem instalar nada.</p>
     <p class="nota">O cabeçalho de cada arquivo diz de onde veio o efeito, o que o define e como foi feito.</p>
 
@@ -63,12 +63,18 @@
     ['06', 'cartoes-em-ordem-de-leitura', 'Cartões em ordem de leitura', 'Dashboard Animation', 'Os cartões pousam na ordem em que se lê a tela, não na ordem do HTML; os números contam até o valor.'],
     ['07', 'otp-de-vidro', 'OTP de vidro', 'Glassy OTP V4', 'Cartão de cantos chanfrados; ao verificar, os quatro dígitos viram um quadrado, se ligam por linhas e fundem num núcleo.'],
     ['08', 'lente-liquida', 'Lente líquida', 'iOS App Publishing', 'Uma faixa de vidro atravessa a tela refratando o que está atrás e troca a página no meio da passagem.'],
-    ['09', 'vidro-espacial', 'Vidro espacial', 'Glassy Dashboard V18', 'O estilo inteiro, com os tokens separados num .css e o movimento num .js — o único assim dos catorze.', true],
+    ['09', 'vidro-espacial', 'Vidro espacial', 'Glassy Dashboard V18', 'O estilo inteiro, com os tokens separados num .css e o movimento num .js — o único assim dos vinte.', true],
     ['10', 'login-octogono', 'Login que vira octógono', 'Glassy Login v3', 'Ao trocar para criar conta, o cartão vira octógono, os cantos soltos voam e viram o logo, e um anel pulsa.'],
     ['11', 'escritorio-3d-com-ia', 'Escritório 3D com IA', '3D Dashboard With AI', 'Um escritório isométrico com pessoas: clicar aproxima a câmera e abre a ficha; o assistente desliza da direita.'],
     ['12', 'lateral-de-vidro', 'Lateral de vidro', 'Glassy SideBar V5', 'A lateral encolhe e cresce com mola, as dicas só aparecem fechada, e o indicador escorrega entre os itens.'],
     ['13', 'kanban-fantasma', 'Kanban com fantasma', 'Admin Dashboard Orders', 'Arrastar levanta um clone do cartão; a coluna sob o cursor se acende e o cartão pousa com FLIP.'],
     ['14', 'pilula-que-estica', 'Pílula que estica', 'Sales CRM', 'A pílula do menu não desliza: as duas bordas andam em tempos diferentes, então ela estica e volta.'],
+    ['15', 'carrossel-em-profundidade', 'Carrossel em profundidade', 'depth carousel (ideia)', 'O cartão do centro fica de frente e os outros recuam em 3D; arrasta com inércia e pousa com mola.'],
+    ['16', 'imagem-que-ondula', 'Imagem que ondula', 'ripple distortion (ideia)', 'A imagem inteira vira água: o mouse deixa rastro de ondas e o clique joga uma pedra.'],
+    ['17', 'sanfona-de-paineis', 'Sanfona de painéis', 'flex carousel (ideia)', 'O painel ativo se abre e os outros viram faixas com o título deitado; passa sozinho.'],
+    ['18', 'persiana-viva', 'Persiana viva', 'micro slats (ideia)', 'Fundo de milhares de ripas que giram como fachada cinética e viram em volta do mouse.'],
+    ['19', 'fragmentadora', 'Fragmentadora', 'shredder (ideia)', 'Apagar passa o documento pela máquina: acima da boca inteiro, abaixo em tiras que caem.'],
+    ['20', 'cartao-que-vira', 'Cartão que vira', 'flip card (ideia)', 'O cartão gira com peso e levanta da mesa; no checkout, vira sozinho no código de segurança.'],
   ];
   document.getElementById('grade').innerHTML = EFEITOS.map(([n, pasta, nome, origem, texto, atalho]) => `
     <a class="cartao" href="${n}-${pasta}/index.html">
