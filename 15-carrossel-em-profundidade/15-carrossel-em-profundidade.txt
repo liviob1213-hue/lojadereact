@@ -265,7 +265,6 @@ O que costuma sair errado:
     el.innerHTML = `<div class="arte"><div class="monte"></div><div class="monte b"></div></div>
       <div class="brilho"></div>
       <div class="rotulo"><small>${regiao}</small><b>${nome}</b><span>${noites}</span></div>`;
-    el.addEventListener('click', () => { if (!arrastou) ir(i); });
     palco.appendChild(el);
     return el;
   });
@@ -359,10 +358,18 @@ O que costuma sair errado:
     amostras.push([performance.now(), pos]);
     if (amostras.length > 6) amostras.shift();
   });
-  function soltar() {
+  function soltar(e) {
     if (!segurando) return;
     segurando = false;
     palco.classList.remove('arrastando');
+    // clique sem arrasto: vai para o cartão que está sob o ponteiro. Não dá para
+    // usar o "click" do cartão: o setPointerCapture do palco desvia o clique
+    // para o palco, e o cartão nunca recebe.
+    if (!arrastou && e && e.type === 'pointerup') {
+      const alvoEl = document.elementFromPoint(e.clientX, e.clientY)?.closest('.cartao');
+      const i = cartoes.indexOf(alvoEl);
+      if (i >= 0) { vel = 0; ir(i); return; }
+    }
     // velocidade média dos últimos ~100 ms vira o empurrão final
     const [t0, p0] = amostras[0], [t1, p1] = amostras[amostras.length - 1];
     const v = t1 > t0 ? (p1 - p0) / ((t1 - t0) / 1000) : 0;

@@ -1,0 +1,347 @@
+{
+  "fps": 30,
+  "videos": [
+    {
+      "id": "01-loop",
+      "tipo": "loop",
+      "efeito": "18-persiana-viva",
+      "duracao": 9,
+      "viewport": [540, 960],
+      "escala": 2,
+      "aquecer": 9,
+      "gancho": "isso não é vídeo.<br><em>é código.</em>",
+      "seguir": "segue a fulgor",
+      "linha": "um efeito novo de interface por post",
+      "capa": 3.2,
+      "variante": {
+        "css": ".veu, .topo, .hero, .numeros { display: none !important; }",
+        "substituir": [
+          ["--fundo: #07110f;", "--fundo: #070605;"],
+          ["--face-clara: 232, 240, 226;", "--face-clara: 255, 106, 26;"],
+          ["--face-escura: 18, 52, 46;", "--face-escura: 34, 15, 6;"],
+          ["--acento: 214, 255, 98;", "--acento: 255, 150, 84;"],
+          ["t * .55", "t * 0.6981317"],
+          ["t * .38", "t * 0.6981317"],
+          ["const RAIO = 150;", "const RAIO = 92;"]
+        ]
+      },
+      "roteiro": {
+        "orbita": {
+          "centro": [270, 500],
+          "raio": [165, 215]
+        },
+        "cliques": [2.1, 6.6]
+      }
+    },
+    {
+      "id": "02-manifesto",
+      "tipo": "manifesto",
+      "efeito": "16-imagem-que-ondula",
+      "duracao": 10.2,
+      "viewport": [540, 960],
+      "escala": 2,
+      "aquecer": 0.4,
+      "capa": 1.1,
+      "abertura": {
+        "texto": "efeitos que o seu app *precisa",
+        "dur": 1.2
+      },
+      "seguir": "segue a fulgor",
+      "linha": "um efeito novo de interface por post",
+      "variante": {
+        "css": ".topo, .rodape, .dica, .so-leitor { display: none !important; }",
+        "substituir": [
+          ["ceu.addColorStop(0, '#191238'); ceu.addColorStop(.45, '#5a2f6e');", "ceu.addColorStop(0, '#070605'); ceu.addColorStop(.45, '#2a0d02');"],
+          ["ceu.addColorStop(.8, '#e7775a'); ceu.addColorStop(1, '#ffc489');", "ceu.addColorStop(.8, '#ff6a1a'); ceu.addColorStop(1, '#ffb27a');"],
+          ["c2.fillStyle = '#3a1f3f';", "c2.fillStyle = '#140803';"],
+          ["mar.addColorStop(0, '#6b3a5e'); mar.addColorStop(.3, '#2b1d48'); mar.addColorStop(1, '#0b0a1b');", "mar.addColorStop(0, '#6a2406'); mar.addColorStop(.3, '#160903'); mar.addColorStop(1, '#070605');"],
+          ["Math.round(h * .25)", "Math.round(h * .105)"],
+          ["c2.fillText('Maré', w / 2, h * .34);", "c2.fillText('FULGOR', w / 2, h * .34);"],
+          ["c2.fillText('HOTEL À BEIRA-MAR', w / 2, h * .175);", "c2.fillText('EFEITOS DE INTERFACE', w / 2, h * .425);"],
+          ["float r = texture2D(img, a + desl * .006).r;", "float r = texture2D(img, a).r;"],
+          ["float b = texture2D(img, a - desl * .006).b;", "float b = texture2D(img, a).b;"]
+        ]
+      },
+      "planos": [
+        { "de": 1.2, "ate": 3, "rotulo": "o rastro vira onda", "zoom": 1.12, "foco": [540, 760], "incl": [4, -3] },
+        { "de": 3, "ate": 4.8, "rotulo": "um toque, uma pedra", "zoom": 1.35, "foco": [540, 650], "incl": [2, 3] },
+        { "de": 4.8, "ate": 6.6, "rotulo": "o reflexo também", "zoom": 1.3, "foco": [540, 1300], "incl": [5, -2] },
+        { "de": 6.6, "ate": 8.4, "rotulo": "chuva de toques", "zoom": 1.1, "foco": [540, 960], "incl": [3, 2] },
+        { "de": 8.4, "ate": 10.2, "rotulo": "o título vira água", "zoom": 1.5, "foco": [540, 680], "incl": [2, -3] }
+      ],
+      "roteiro": [
+        { "t": 0, "pos": [110, 740] },
+        { "t": 0.2, "ir": [420, 620], "dur": 1 },
+        { "t": 1.25, "ir": [140, 380], "dur": 0.9 },
+        { "t": 2.2, "ir": [430, 300], "dur": 0.8 },
+        { "t": 3.05, "ir": [270, 330], "dur": 0.45 },
+        { "t": 3.6, "clicar": true },
+        { "t": 3.7, "ir": [300, 360], "dur": 1.1 },
+        { "t": 4.85, "ir": [180, 700], "dur": 0.6 },
+        { "t": 5.5, "ir": [380, 780], "dur": 0.8 },
+        { "t": 6, "clicar": true },
+        { "t": 6.35, "ir": [300, 700], "dur": 0.3 },
+        { "t": 6.7, "ir": [140, 300], "dur": 0.35 },
+        { "t": 7.1, "clicar": true },
+        { "t": 7.15, "ir": [410, 520], "dur": 0.35 },
+        { "t": 7.55, "clicar": true },
+        { "t": 7.6, "ir": [200, 680], "dur": 0.35 },
+        { "t": 8, "clicar": true },
+        { "t": 8.05, "ir": [380, 260], "dur": 0.3 },
+        { "t": 8.35, "clicar": true },
+        { "t": 8.5, "ir": [70, 330], "dur": 0.4 },
+        { "t": 8.95, "ir": [480, 345], "dur": 0.7 },
+        { "t": 9.2, "clicar": true },
+        { "t": 9.7, "ir": [120, 320], "dur": 0.6 }
+      ]
+    },
+    {
+      "id": "03-CARROSSEL",
+      "tipo": "antes-depois",
+      "efeito": "15-carrossel-em-profundidade",
+      "antes": "antes/15-carrossel-em-profundidade.html",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 1.4,
+      "recorte": [140, 175, 1000, 472],
+      "gancho": "app de viagem sem<br>vontade de viajar",
+      "palavra": "CARROSSEL",
+      "ctaEm": 12,
+      "capa": 2.6,
+      "roteiro": [
+        { "t": 0, "pos": [900, 560] },
+        { "t": 0.8, "ir": [700, 400], "dur": 0.9 },
+        { "t": 1.85, "apertar": true },
+        { "t": 1.9, "ir": [430, 410], "dur": 0.55, "curva": "acelera", "arco": 0.04 },
+        { "t": 2.45, "soltar": true },
+        { "t": 2.9, "ir": [880, 400], "dur": 0.9 },
+        { "t": 3.9, "clicar": true },
+        { "t": 4.4, "ir": [620, 390], "dur": 0.8 },
+        { "t": 5.3, "apertar": true },
+        { "t": 5.35, "ir": [900, 400], "dur": 0.5, "curva": "acelera", "arco": 0.04 },
+        { "t": 5.85, "soltar": true },
+        { "t": 6.3, "ir": [400, 420], "dur": 1 },
+        { "t": 7.4, "clicar": true },
+        { "t": 7.9, "ir": [700, 380], "dur": 0.8 },
+        { "t": 8.8, "apertar": true },
+        { "t": 8.85, "ir": [380, 400], "dur": 0.5, "curva": "acelera", "arco": 0.04 },
+        { "t": 9.35, "soltar": true },
+        { "t": 9.8, "ir": [880, 410], "dur": 0.9 },
+        { "t": 10.8, "clicar": true },
+        { "t": 11.3, "ir": [600, 390], "dur": 0.8 },
+        { "t": 12.1, "apertar": true },
+        { "t": 12.15, "ir": [900, 400], "dur": 0.5, "curva": "acelera", "arco": 0.04 },
+        { "t": 12.65, "soltar": true },
+        { "t": 13.1, "ir": [720, 380], "dur": 0.8 },
+        { "t": 14, "apertar": true },
+        { "t": 14.05, "ir": [420, 400], "dur": 0.45, "curva": "acelera", "arco": 0.04 },
+        { "t": 14.5, "soltar": true },
+        { "t": 14.9, "ir": [520, 400], "dur": 0.5 },
+        { "t": 15.45, "apertar": true },
+        { "t": 15.5, "ir": [960, 405], "dur": 0.6, "curva": "acelera", "arco": 0.04 }
+      ]
+    },
+    {
+      "tipo": "antes-depois",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 1.4,
+      "ctaEm": 12,
+      "id": "04-ONDA",
+      "efeito": "16-imagem-que-ondula",
+      "palavra": "ONDA",
+      "capa": 3.9,
+      "gancho": "foto parada<br>não vende diária",
+      "recorte": [140, 120, 1000, 472],
+      "antes": {
+        "substituir": [
+          ["function soltarOnda(x, y, forca) {", "function soltarOnda(x, y, forca) { return;"]
+        ]
+      },
+      "roteiro": [
+        { "t": 0, "pos": [980, 520] },
+        { "t": 0.8, "ir": [760, 300], "dur": 0.9 },
+        { "t": 1.8, "ir": [420, 250], "dur": 1 },
+        { "t": 2.9, "ir": [640, 300], "dur": 0.6 },
+        { "t": 3.6, "clicar": true },
+        { "t": 3.9, "ir": [880, 420], "dur": 1 },
+        { "t": 5, "ir": [500, 500], "dur": 1.1 },
+        { "t": 6.2, "clicar": true },
+        { "t": 6.5, "ir": [300, 300], "dur": 0.8 },
+        { "t": 7.4, "clicar": true },
+        { "t": 7.6, "ir": [940, 260], "dur": 1.2 },
+        { "t": 8.9, "ir": [700, 480], "dur": 0.7 },
+        { "t": 9.7, "clicar": true },
+        { "t": 10, "ir": [400, 380], "dur": 1 },
+        { "t": 11.1, "ir": [820, 330], "dur": 1 },
+        { "t": 12.2, "clicar": true },
+        { "t": 12.4, "ir": [560, 250], "dur": 1 },
+        { "t": 13.5, "clicar": true },
+        { "t": 13.7, "ir": [300, 450], "dur": 1.1 },
+        { "t": 14.9, "ir": [900, 380], "dur": 1.2 }
+      ]
+    },
+    {
+      "tipo": "antes-depois",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 1.4,
+      "ctaEm": 12,
+      "id": "05-SANFONA",
+      "efeito": "17-sanfona-de-paineis",
+      "palavra": "SANFONA",
+      "capa": 2,
+      "gancho": "ninguém clica no<br>que parece chato",
+      "recorte": [34, 141, 1212, 572],
+      "antes": {
+        "css": ".painel, .arte, .miolo > *, .faixa, .tempo { transition: none !important; }"
+      },
+      "roteiro": [
+        { "t": 0, "pos": [400, 560] },
+        { "t": 0.8, "ir": [800, 450], "dur": 0.8 },
+        { "t": 2.4, "ir": [1060, 420], "dur": 0.9 },
+        { "t": 4.2, "ir": [1190, 400], "dur": 0.6 },
+        { "t": 5.6, "ir": [350, 430], "dur": 1 },
+        { "t": 7.2, "clicar": true },
+        { "t": 7.6, "ir": [100, 500], "dur": 0.8 },
+        { "t": 9, "ir": [560, 380], "dur": 1 },
+        { "t": 10.2, "ir": [920, 420], "dur": 0.8 },
+        { "t": 11.5, "ir": [1060, 470], "dur": 0.7 },
+        { "t": 12.8, "ir": [230, 430], "dur": 1 },
+        { "t": 14.2, "ir": [1180, 400], "dur": 1.3 }
+      ]
+    },
+    {
+      "tipo": "antes-depois",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 1.4,
+      "ctaEm": 12,
+      "id": "06-PERSIANA",
+      "efeito": "18-persiana-viva",
+      "palavra": "PERSIANA",
+      "capa": 3.6,
+      "gancho": "site de arquiteto<br>não pode ser liso",
+      "recorte": [140, 200, 1000, 472],
+      "antes": {
+        "substituir": [
+          ["if (!reduzido) requestAnimationFrame(quadro);", "desenhar(0);"]
+        ]
+      },
+      "roteiro": [
+        { "t": 0, "pos": [1000, 620] },
+        { "t": 0.8, "ir": [760, 360], "dur": 1 },
+        { "t": 1.9, "ir": [300, 300], "dur": 1.2 },
+        { "t": 3.2, "clicar": true },
+        { "t": 3.4, "ir": [520, 520], "dur": 1 },
+        { "t": 4.5, "ir": [980, 280], "dur": 1.2 },
+        { "t": 5.8, "clicar": true },
+        { "t": 6, "ir": [700, 640], "dur": 1 },
+        { "t": 7.1, "ir": [260, 560], "dur": 1 },
+        { "t": 8.2, "clicar": true },
+        { "t": 8.4, "ir": [640, 260], "dur": 1.1 },
+        { "t": 9.6, "clicar": true },
+        { "t": 9.8, "ir": [1000, 450], "dur": 1.1 },
+        { "t": 11, "ir": [420, 420], "dur": 1.2 },
+        { "t": 12.3, "clicar": true },
+        { "t": 12.5, "ir": [860, 600], "dur": 1.1 },
+        { "t": 13.7, "ir": [300, 250], "dur": 1.2 },
+        { "t": 15, "clicar": true },
+        { "t": 15.1, "ir": [700, 500], "dur": 1 }
+      ]
+    },
+    {
+      "tipo": "antes-depois",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 1.4,
+      "ctaEm": 12,
+      "id": "07-FRAGMENTA",
+      "efeito": "19-fragmentadora",
+      "palavra": "FRAGMENTA",
+      "capa": 2.6,
+      "gancho": "seu usuário nem<br>viu que apagou",
+      "recorte": [300, 250, 972, 459],
+      "antes": {
+        "css": ".papel.entrando { animation: none !important; } .arquivo, .aviso { transition: none !important; }",
+        "substituir": [
+          ["const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;", "const reduzido = true;"],
+          ["papel.style.transition = 'opacity .3s'; papel.style.opacity = '0';", "papel.style.opacity = '0';"],
+          ["setTimeout(() => terminar(doc), 320);", "terminar(doc);"]
+        ]
+      },
+      "roteiro": [
+        { "t": 0, "pos": [800, 620] },
+        { "t": 0.4, "ir": "#fragmentar", "dur": 0.8 },
+        { "t": 1.4, "clicar": true },
+        { "t": 1.6, "ir": [790, 600], "dur": 1 },
+        { "t": 3, "ir": [600, 400], "dur": 1.2 },
+        { "t": 4.4, "ir": "#fragmentar", "dur": 0.8 },
+        { "t": 5.4, "clicar": true },
+        { "t": 5.6, "ir": [700, 620], "dur": 1.2 },
+        { "t": 7.2, "ir": [880, 420], "dur": 1 },
+        { "t": 8.4, "ir": "#fragmentar", "dur": 0.8 },
+        { "t": 9.4, "clicar": true },
+        { "t": 9.6, "ir": [640, 640], "dur": 1.2 },
+        { "t": 11.2, "ir": [820, 380], "dur": 1 },
+        { "t": 12.4, "ir": "#fragmentar", "dur": 0.8 },
+        { "t": 13.4, "clicar": true },
+        { "t": 13.6, "ir": [760, 620], "dur": 1.4 },
+        { "t": 15.1, "ir": [900, 480], "dur": 1.2 }
+      ],
+      "ambos": {
+        "css": ".mesa-topo { top: 300px !important; left: auto !important; right: 60px !important; } .mesa-topo h1, .mesa-topo span { display: none !important; }"
+      }
+    },
+    {
+      "tipo": "antes-depois",
+      "duracao": 16,
+      "viewport": [1280, 860],
+      "escala": 1,
+      "aquecer": 4.2,
+      "ctaEm": 12,
+      "id": "08-CARTAO",
+      "efeito": "20-cartao-que-vira",
+      "palavra": "CARTAO",
+      "capa": 3,
+      "gancho": "seu card é só<br>um retângulo",
+      "recorte": [80, 180, 1140, 538],
+      "antes": {
+        "substituir": [
+          ["const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;", "const reduzido = true;"]
+        ]
+      },
+      "roteiro": [
+        { "t": 0, "pos": [600, 640] },
+        { "t": 0.8, "ir": [330, 380], "dur": 1 },
+        { "t": 1.9, "ir": [440, 450], "dur": 0.8 },
+        { "t": 2.8, "clicar": true },
+        { "t": 3.2, "ir": [260, 360], "dur": 0.9 },
+        { "t": 4.2, "clicar": true },
+        { "t": 4.6, "ir": "#fNum", "dur": 1 },
+        { "t": 5.7, "clicar": true },
+        { "t": 5.9, "digitar": "1234567890123456", "intervalo": 0.07 },
+        { "t": 7.2, "ir": "#fNome", "dur": 0.6 },
+        { "t": 7.9, "clicar": true },
+        { "t": 8.05, "digitar": "LIA PRADO", "intervalo": 0.08 },
+        { "t": 8.9, "ir": "#fVal", "dur": 0.5 },
+        { "t": 9.5, "clicar": true },
+        { "t": 9.6, "digitar": "0829", "intervalo": 0.1 },
+        { "t": 10.1, "ir": "#fCvv", "dur": 0.5 },
+        { "t": 10.7, "clicar": true },
+        { "t": 10.9, "digitar": "123", "intervalo": 0.15 },
+        { "t": 11.6, "ir": [600, 700], "dur": 0.8 },
+        { "t": 12.6, "clicar": true },
+        { "t": 13.4, "ir": [330, 400], "dur": 0.9 },
+        { "t": 14.5, "clicar": true },
+        { "t": 15.2, "ir": [450, 440], "dur": 0.5 },
+        { "t": 15.75, "clicar": true }
+      ]
+    }
+  ]
+}

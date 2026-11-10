@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Antes · Carrossel</title>
+<!--
+  ANTES do efeito 15 — o jeito comum de fazer o mesmo carrossel.
+  Mesmo conteúdo, mesmo layout, mesmas cores e mesmos ids. A diferença é só o
+  comportamento: uma fileira reta que rola, segue o arrasto 1:1 e para seco ao
+  soltar. Sem profundidade, sem inércia, sem mola. Só para o vídeo.
+-->
+<style>
+  :root {
+    --fundo: #0b0a10;
+    --texto: #f4f1fb;
+    --texto-2: rgba(244, 241, 251, .64);
+    --texto-3: rgba(244, 241, 251, .4);
+    --acento: #b8a2ff;
+    --linha: rgba(255, 255, 255, .09);
+    --cartao-l: 300px;
+    --cartao-a: 400px;
+    --passo: 210px;        /* distância lateral entre um cartão e o próximo */
+    --recuo: 170px;        /* quanto cada passo afunda no eixo Z */
+    --giro: 24deg;         /* rotação de cada passo */
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    color: var(--texto); font: 14px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(60% 50% at 50% 38%, rgba(140, 110, 255, .18), transparent 70%),
+      radial-gradient(40% 40% at 90% 100%, rgba(255, 140, 90, .1), transparent 70%),
+      var(--fundo);
+    overflow: hidden; user-select: none;
+  }
+  .topo { display: flex; align-items: center; gap: 22px; padding: 22px 34px; position: relative; z-index: 5; }
+  .marca { display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: .02em; }
+  .marca i { width: 26px; height: 26px; border-radius: 50%; background: conic-gradient(from 200deg, #b8a2ff, #ff9b6b, #b8a2ff); }
+  .topo nav { display: flex; gap: 4px; margin-left: 26px; }
+  .topo nav a { color: var(--texto-2); text-decoration: none; padding: 7px 13px; border-radius: 999px; font-size: 13px; }
+  .topo nav a.ativo { color: var(--texto); background: rgba(255,255,255,.07); }
+  .topo .busca { margin-left: auto; width: 220px; padding: 9px 14px; border-radius: 999px; color: var(--texto-3); font-size: 12.5px; box-shadow: inset 0 0 0 1px var(--linha); }
+
+  .cabeca { text-align: center; margin-top: 6px; position: relative; z-index: 5; }
+  .cabeca small { font-size: 10.5px; letter-spacing: .28em; text-transform: uppercase; color: var(--acento); }
+  .cabeca h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 600; font-size: 40px; letter-spacing: -.03em; }
+
+  /* ---------------- o palco 3D ---------------- */
+  .palco {
+    position: relative; height: 470px; margin-top: 8px;
+    perspective: 1400px; perspective-origin: 50% 45%;
+    cursor: grab; touch-action: pan-y;
+  }
+  .palco.arrastando { cursor: grabbing; }
+  .palco:focus-visible { outline: none; }
+  .cartao {
+    position: absolute; left: 50%; top: 50%;
+    width: var(--cartao-l); height: var(--cartao-a);
+    margin: calc(var(--cartao-a) / -2) 0 0 calc(var(--cartao-l) / -2);
+    border-radius: 22px; overflow: hidden;
+    transform-style: preserve-3d; will-change: transform, filter, opacity;
+    box-shadow: 0 40px 70px -30px rgba(0,0,0,.9), inset 0 0 0 1px rgba(255,255,255,.12);
+    background: var(--c1);
+  }
+  /* a arte do cartão é toda CSS: céu, sol, duas camadas de montanha e brilho */
+  .arte { position: absolute; inset: 0; background: linear-gradient(180deg, var(--c1), var(--c2) 70%); }
+  .arte::before {
+    content: ""; position: absolute; width: 120px; height: 120px; border-radius: 50%;
+    left: var(--sx, 60%); top: var(--sy, 26%); transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--sol) 40%, transparent 70%);
+    filter: blur(1px); opacity: .95;
+  }
+  .monte { position: absolute; inset: auto 0 0 0; height: 62%; background: var(--m1);
+    clip-path: polygon(0 55%, 18% 30%, 34% 48%, 52% 18%, 70% 44%, 86% 28%, 100% 42%, 100% 100%, 0 100%); }
+  .monte.b { height: 44%; background: var(--m2);
+    clip-path: polygon(0 40%, 22% 62%, 40% 34%, 58% 58%, 78% 30%, 100% 56%, 100% 100%, 0 100%); }
+  .cartao .brilho { position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.22), transparent 38%); mix-blend-mode: soft-light; }
+  .cartao .rotulo {
+    position: absolute; left: 18px; right: 18px; bottom: 18px; padding: 14px 16px; border-radius: 16px;
+    background: rgba(10, 8, 18, .38); backdrop-filter: blur(14px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+  }
+  .rotulo small { display: block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.7); }
+  .rotulo b { font-family: var(--serif); font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+  .rotulo span { float: right; font-size: 12px; color: rgba(255,255,255,.8); margin-top: 6px; }
+
+  /* ---------------- rodapé: detalhe + pontos ---------------- */
+  .detalhe { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 4px; position: relative; z-index: 5; }
+  .seta {
+    width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; color: var(--texto);
+    background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px var(--linha);
+    display: grid; place-items: center; transition: background .25s, transform .25s;
+  }
+  .seta:hover { background: rgba(184,162,255,.18); transform: scale(1.06); }
+  .seta svg { width: 16px; height: 16px; }
+  .info { width: 360px; text-align: center; }
+  .info p { margin: 0; color: var(--texto-2); font-size: 13px; min-height: 40px; transition: opacity .25s; }
+  .pontos { display: flex; justify-content: center; gap: 7px; margin-top: 12px; }
+  .pontos i { width: 6px; height: 6px; border-radius: 999px; background: rgba(255,255,255,.2); transition: width .45s cubic-bezier(.22,1,.36,1), background .3s; }
+  .pontos i.ativo { width: 22px; background: var(--acento); }
+
+  @media (max-width: 700px) {
+    :root { --cartao-l: 230px; --cartao-a: 310px; --passo: 150px; --recuo: 140px; }
+    .topo nav, .topo .busca { display: none; }
+    .palco { height: 360px; }
+    .cabeca h1 { font-size: 30px; }
+    .info { width: 220px; }
+  }
+  /* ---- antes: fileira reta ---- */
+  .palco { perspective: none; overflow: hidden; display: flex; align-items: center; gap: 24px; padding: 0 calc(50% - var(--cartao-l) / 2); cursor: default; }
+  .palco .cartao { position: relative; left: auto; top: auto; margin: 0; flex: none; }
+</style>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca"><i></i>Rotas</div>
+    <nav><a class="ativo" href="#">Explorar</a><a href="#">Salvos</a><a href="#">Viagens</a></nav>
+    <div class="busca">Buscar um destino…</div>
+  </header>
+
+  <div class="cabeca">
+    <small>escolha o próximo destino</small>
+    <h1>Para onde agora?</h1>
+  </div>
+
+  <div class="palco" id="palco" tabindex="0" role="region" aria-roledescription="carrossel" aria-label="Destinos"></div>
+
+  <div class="detalhe">
+    <button class="seta" id="antes" aria-label="Destino anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div class="info">
+      <p id="texto" aria-live="polite"></p>
+      <div class="pontos" id="pontos"></div>
+    </div>
+    <button class="seta" id="depois" aria-label="Próximo destino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+
+<script>
+(() => {
+  const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // nome, região, noites, frase, e as cores da arte [céu1, céu2, sol, monte1, monte2, solX, solY]
+  const DESTINOS = [
+    ['Serra Azul', 'Montanhas', '4 noites', 'Trilhas de altitude e um mirante que pega o sol nascendo sobre as nuvens.', ['#3b4a9c', '#f1a37b', '#ffe3b0', '#2a2b5c', '#15142e', '62%', '30%']],
+    ['Lagoa de Vidro', 'Lagos', '3 noites', 'Água parada como espelho, cabanas na margem e caiaque ao fim da tarde.', ['#1d5d7a', '#9fd6d2', '#fff6d8', '#1f4a55', '#0d2a31', '38%', '24%']],
+    ['Dunas do Leste', 'Deserto', '5 noites', 'Areia que muda de cor com a hora e um céu de estrelas sem nenhuma luz por perto.', ['#e46b3f', '#ffd08a', '#fff1c7', '#b5502c', '#6e2a17', '70%', '36%']],
+    ['Vale Âmbar', 'Campo', '2 noites', 'Vinhedos em degraus, mesa comprida no fim do dia e estrada de terra.', ['#6a3b7c', '#f6b26b', '#ffd59a', '#4c2a4a', '#24131f', '44%', '40%']],
+    ['Ilha Calma', 'Praia', '6 noites', 'Uma vila de pescadores, mar sem onda e barco que sai às seis da manhã.', ['#0f6c8c', '#7fe1c9', '#fffbe0', '#0d4f5e', '#073039', '30%', '28%']],
+    ['Pico Nublado', 'Montanhas', '4 noites', 'Refúgio de pedra lá no alto, chá quente e nuvem passando pela janela.', ['#4a5068', '#c9c3d6', '#ffffff', '#33364a', '#1a1b27', '58%', '22%']],
+    ['Baía Rosa', 'Litoral', '3 noites', 'Falésias rosadas, um farol antigo e o pôr do sol mais demorado da costa.', ['#8a3a6b', '#ff9a8b', '#ffe0c2', '#5c2448', '#2c1023', '50%', '34%']],
+  ];
+
+  const palco = document.getElementById('palco');
+  const texto = document.getElementById('texto');
+  const pontos = document.getElementById('pontos');
+  const total = DESTINOS.length;
+  const cartoes = DESTINOS.map(([nome, regiao, noites, , c]) => {
+    const el = document.createElement('article');
+    el.className = 'cartao';
+    el.style.cssText = `--c1:${c[0]};--c2:${c[1]};--sol:${c[2]};--m1:${c[3]};--m2:${c[4]};--sx:${c[5]};--sy:${c[6]}`;
+    el.innerHTML = `<div class="arte"><div class="monte"></div><div class="monte b"></div></div>
+      <div class="brilho"></div>
+      <div class="rotulo"><small>${regiao}</small><b>${nome}</b><span>${noites}</span></div>`;
+    palco.appendChild(el);
+    return el;
+  });
+  pontos.innerHTML = DESTINOS.map(() => '<i></i>').join('');
+  const bolinhas = [...pontos.children];
+  const passo = () => cartoes[1].offsetLeft - cartoes[0].offsetLeft;
+  function atualizar() {
+    const i = Math.max(0, Math.min(total - 1, Math.round(palco.scrollLeft / passo())));
+    bolinhas.forEach((b, j) => b.classList.toggle('ativo', j === i));
+    texto.textContent = DESTINOS[i][3];
+  }
+  palco.addEventListener('scroll', atualizar);
+  // arrastar move a fileira junto com o mouse e para onde soltar
+  let x0 = 0, s0 = 0, segurando = false;
+  palco.addEventListener('pointerdown', (e) => { segurando = true; x0 = e.clientX; s0 = palco.scrollLeft; });
+  addEventListener('pointermove', (e) => { if (segurando) palco.scrollLeft = s0 - (e.clientX - x0); });
+  addEventListener('pointerup', () => { segurando = false; });
+  document.getElementById('antes').addEventListener('click', () => { palco.scrollLeft -= passo(); });
+  document.getElementById('depois').addEventListener('click', () => { palco.scrollLeft += passo(); });
+  palco.scrollLeft = passo() * 3;
+  atualizar();
+})();
+</script>
+</body>
+</html>

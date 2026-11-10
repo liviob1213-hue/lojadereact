@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>FULGOR · compositor de Reels</title>
+<!--
+  Compositor dos vídeos. O render.js abre esta página em 1080×1920, chama
+  montar(config) uma vez e quadro(estado) a cada frame, e tira o screenshot.
+  Os painéis chegam prontos (screenshots dos efeitos reais); aqui entram só o
+  enquadramento, os textos, os selos, o cursor, a câmera e o acabamento.
+
+  Zonas seguras do Reels: nenhum TEXTO em y < 250, y > 1500 nem x > 940.
+-->
+<style>
+  @font-face { font-family: "Inter Tight"; font-weight: 500; src: url("node_modules/@fontsource/inter-tight/files/inter-tight-latin-500-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Inter Tight"; font-weight: 700; src: url("node_modules/@fontsource/inter-tight/files/inter-tight-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "Inter Tight"; font-weight: 800; src: url("node_modules/@fontsource/inter-tight/files/inter-tight-latin-800-normal.woff2") format("woff2"); }
+  :root {
+    --preto: #070605;
+    --laranja: #ff6a1a;
+    --branco: #ffffff;
+    --cinza: #8d8a86;
+    --painel-l: 1080px;
+    --painel-a: 510px;
+    --topo-a: 475px;       /* onde começa o painel de cima */
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--preto); }
+  body { font-family: "Inter Tight", system-ui, sans-serif; color: var(--branco); -webkit-font-smoothing: antialiased; }
+  .camada { position: absolute; inset: 0; }
+  [hidden] { display: none !important; }
+
+  /* ---------------- marca ---------------- */
+  .marca { position: absolute; left: 60px; top: 262px; display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 26px; letter-spacing: .2em; z-index: 20; }
+  .marca img { width: 56px; height: 56px; margin: -6px -4px -6px -8px; }
+  .marca span { opacity: .92; }
+
+  /* ---------------- cursor ---------------- */
+  .cursor { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+    background: var(--branco); box-shadow: 0 0 0 5px rgba(255,106,26,.28), 0 0 22px 6px rgba(255,106,26,.35), 0 3px 10px rgba(0,0,0,.45);
+    z-index: 15; pointer-events: none; will-change: transform; }
+
+  /* ================= ANTES / DEPOIS ================= */
+  .ad .gancho { position: absolute; left: 60px; top: 334px; width: 860px; font-weight: 800; font-size: 60px; line-height: 1.02; letter-spacing: -.035em; z-index: 20; }
+  .painel { position: absolute; left: 0; width: var(--painel-l); height: var(--painel-a); overflow: hidden; background: #000; }
+  .painel img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .painel.cima { top: var(--topo-a); }
+  .painel.baixo { top: calc(var(--topo-a) + var(--painel-a) + 4px); }
+  .divisa { position: absolute; left: 0; right: 0; top: calc(var(--topo-a) + var(--painel-a)); height: 4px; background: var(--laranja); box-shadow: 0 0 18px rgba(255,106,26,.7); z-index: 12; }
+  .selo { position: absolute; left: 24px; top: 22px; padding: 9px 18px 10px; border-radius: 999px; font-weight: 700; font-size: 26px; letter-spacing: .02em; z-index: 13; }
+  .selo.antes { background: rgba(70,68,66,.88); color: #e9e6e2; box-shadow: inset 0 0 0 2px rgba(255,255,255,.14); }
+  .selo.depois { background: var(--laranja); color: #120701; box-shadow: 0 8px 24px -8px rgba(255,106,26,.9); }
+
+  /* card de CTA: cobre o painel de cima */
+  .cta { position: absolute; left: 0; top: var(--topo-a); width: var(--painel-l); height: var(--painel-a); background: var(--laranja); color: #0b0603;
+    z-index: 14; padding: 70px 60px 0; clip-path: inset(0 100% 0 0); }
+  .cta small { display: block; font-weight: 700; font-size: 50px; letter-spacing: -.02em; line-height: 1; }
+  .cta b { display: block; font-weight: 800; font-size: 132px; letter-spacing: -.045em; line-height: .95; margin: 14px 0 28px; }
+  .cta p { font-weight: 600; font-size: 40px; letter-spacing: -.015em; line-height: 1.15; max-width: 820px; }
+
+  /* ================= LOOP ================= */
+  .lp .palco { position: absolute; inset: 0; perspective: 1700px; overflow: hidden; }
+  .lp .camera { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 50% 50%; will-change: transform; }
+  .lp .camera img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .lp .camera img.brilho { filter: blur(26px) brightness(1.35) saturate(1.2); mix-blend-mode: screen; opacity: .55; }
+  .lp .vinheta { background: radial-gradient(120% 85% at 50% 48%, transparent 52%, rgba(7,6,5,.55) 78%, rgba(7,6,5,.92)); z-index: 10; }
+  .lp .faixa-alto { background: linear-gradient(180deg, rgba(7,6,5,.86) 0, rgba(7,6,5,.6) 330px, transparent 560px); z-index: 11; }
+  .lp .faixa-baixo { background: linear-gradient(0deg, rgba(7,6,5,.92) 0, rgba(7,6,5,.7) 470px, transparent 720px); z-index: 11; }
+  .grao { z-index: 16; mix-blend-mode: overlay; opacity: .09; width: 1080px; height: 1920px; image-rendering: pixelated; }
+  .lp .gancho { position: absolute; left: 60px; top: 340px; width: 860px; font-weight: 800; font-size: 76px; line-height: 1; letter-spacing: -.04em; z-index: 20; }
+  .lp .gancho em, .chamada em { font-style: normal; color: var(--laranja); }
+  .lp .chamada { position: absolute; left: 60px; top: 1330px; width: 860px; z-index: 20; }
+  .chamada .seguir { display: inline-flex; align-items: center; gap: 14px; padding: 18px 30px 19px; border-radius: 999px; background: var(--laranja); color: #120701; font-weight: 800; font-size: 40px; letter-spacing: -.02em; box-shadow: 0 16px 40px -14px rgba(255,106,26,.95); }
+  .chamada .seguir i { font-style: normal; font-size: 46px; line-height: 0; margin-top: -4px; }
+  /* manifesto: abertura e rótulo do plano */
+  .abertura { position: absolute; left: 60px; right: 140px; top: 760px; z-index: 21; font-weight: 800; font-size: 104px; line-height: .98; letter-spacing: -.045em; }
+  .abertura span { display: inline-block; margin-right: .22em; will-change: transform, opacity, filter; }
+  .abertura em { font-style: normal; color: var(--laranja); }
+  .rotulo { position: absolute; left: 60px; top: 345px; z-index: 21; display: flex; align-items: baseline; gap: 18px; font-weight: 800; font-size: 54px; letter-spacing: -.035em; }
+  .rotulo b { color: var(--laranja); font-size: 34px; letter-spacing: .02em; font-weight: 700; }
+  .chamada p { margin-top: 18px; font-weight: 600; font-size: 34px; letter-spacing: -.015em; color: rgba(255,255,255,.86); }
+</style>
+</head>
+<body>
+  <!-- antes / depois -->
+  <section class="camada ad" id="ad" hidden>
+    <div class="marca"><img src="../marca/fulgor-logo-160.webp" alt="" /><span>FULGOR</span></div>
+    <h1 class="gancho" id="adGancho"></h1>
+    <div class="painel cima"><img id="imgAntes" alt="" /><span class="selo antes">antes</span><i class="cursor" id="cursorA"></i></div>
+    <div class="divisa"></div>
+    <div class="painel baixo"><img id="imgDepois" alt="" /><span class="selo depois">depois</span><i class="cursor" id="cursorB"></i></div>
+    <div class="cta" id="cta"><small>comenta</small><b id="ctaPalavra"></b><p>que eu te mando o código no direct</p></div>
+  </section>
+
+  <!-- loop -->
+  <section class="camada lp" id="lp" hidden>
+    <div class="palco"><div class="camera" id="camera">
+      <img id="imgLoop" alt="" /><img id="imgBrilho" class="brilho" alt="" />
+      <i class="cursor" id="cursorL" style="width:44px;height:44px;margin:-22px 0 0 -22px"></i>
+    </div></div>
+    <div class="camada vinheta"></div>
+    <div class="camada faixa-alto"></div>
+    <div class="camada faixa-baixo"></div>
+    <div class="marca"><img src="../marca/fulgor-logo-160.webp" alt="" /><span>FULGOR</span></div>
+    <h1 class="gancho" id="lpGancho"></h1>
+    <h1 class="abertura" id="abertura" hidden></h1>
+    <div class="rotulo" id="rotulo" hidden><b id="rotuloNum"></b><span id="rotuloNome"></span></div>
+    <div class="chamada" id="lpChamada"><span class="seguir"><i>+</i><span id="lpSeguir"></span></span><p id="lpLinha"></p></div>
+  </section>
+
+  <canvas class="camada grao" id="grao" width="540" height="960"></canvas>
+
+<script>
+  let cfg = null;
+  const $ = (id) => document.getElementById(id);
+
+  window.montar = async (c) => {
+    cfg = c;
+    $('ad').hidden = c.tipo !== 'antes-depois';
+    const cinema = c.tipo === 'loop' || c.tipo === 'manifesto';
+    $('lp').hidden = !cinema;
+    $('grao').hidden = !cinema;
+    if (c.tipo === 'manifesto') {
+      // cada palavra num span: elas entram em sequência; <em> marca a palavra em laranja
+      $('abertura').innerHTML = c.abertura.texto.split(' ').map((w) =>
+        w.startsWith('*') ? `<span><em>${w.slice(1)}</em></span>` : `<span>${w}</span>`).join(' ');
+      $('lpGancho').hidden = true;
+    }
+    if (c.tipo === 'antes-depois') {
+      $('adGancho').innerHTML = c.gancho;        // aceita <br> para quebrar no lugar certo
+      $('ctaPalavra').textContent = c.palavra;
+    } else {
+      $('lpGancho').innerHTML = c.gancho || '';      // aceita <em> para o laranja
+      $('lpSeguir').textContent = c.seguir;
+      $('lpLinha').textContent = c.linha || '';
+    }
+    await document.fonts.ready;
+    await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+    return [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family + ' ' + f.weight);
+  };
+
+  const carregar = (img, src) => { img.src = src; return img.decode(); };
+  const suave = (x) => x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
+
+  // granulação: ruído novo a cada frame, com semente pelo número do frame
+  const g = $('grao').getContext('2d');
+  const gd = g.createImageData(540, 960);
+  function grao(semente) {
+    let s = (semente * 2654435761) >>> 0 || 1;
+    const d = gd.data;
+    for (let i = 0; i < d.length; i += 4) {
+      s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+      const v = s & 255;
+      d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+    }
+    g.putImageData(gd, 0, 0);
+  }
+
+  window.quadro = async (e) => {
+    if (cfg.tipo === 'antes-depois') {
+      await Promise.all([carregar($('imgAntes'), e.antes), carregar($('imgDepois'), e.depois)]);
+      for (const [id, c] of [['cursorA', e.cursor], ['cursorB', e.cursor]]) {
+        $(id).style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.apertado ? .78 : 1})`;
+        $(id).style.opacity = c.visivel ? 1 : 0;
+      }
+      // o CTA entra como uma cortina da esquerda para a direita
+      const p = suave((e.t - cfg.ctaEm) / .42);
+      $('cta').style.clipPath = `inset(0 ${(1 - p) * 100}% 0 0)`;
+      $('cursorA').style.visibility = p >= 1 ? 'hidden' : 'visible';
+    } else if (cfg.tipo === 'manifesto') {
+      await Promise.all([carregar($('imgLoop'), e.quadro), carregar($('imgBrilho'), e.quadro)]);
+      const ab = cfg.abertura.dur;
+      const naAbertura = e.t < ab;
+      // abertura: palavras sobem saindo do desfoque, uma depois da outra
+      $('abertura').hidden = !naAbertura;
+      if (naAbertura) [...$('abertura').children].forEach((w, i) => {
+        const p = suave((e.t - .08 - i * .09) / .5);
+        w.style.opacity = p;
+        w.style.transform = `translateY(${(1 - p) * 70}px)`;
+        w.style.filter = `blur(${(1 - p) * 14}px)`;
+      });
+      // planos com corte seco: enquadramento muda de uma vez, depois deriva devagar
+      const plano = cfg.planos.find((p) => e.t >= p.de && e.t < p.ate) || cfg.planos[cfg.planos.length - 1];
+      const u = naAbertura ? e.t / ab : (e.t - plano.de) / (plano.ate - plano.de);
+      const z = naAbertura ? 1.08 + .03 * u : plano.zoom * (1 + .05 * u);
+      const foco = naAbertura ? [540, 960] : plano.foco;
+      const lim = (v, m) => Math.max(-m, Math.min(m, v));
+      const tx = lim(-(foco[0] - 540) * z, (z - 1) * 540), ty = lim(-(foco[1] - 960) * z, (z - 1) * 960);
+      const [rx, ry] = naAbertura ? [3, 0] : plano.incl;
+      $('camera').style.transform = `translate(${tx}px, ${ty}px) scale(${z}) rotateX(${rx * (1 - .6 * u)}deg) rotateY(${ry * (1 - 1.4 * u)}deg)`;
+      $('camera').style.opacity = naAbertura ? .38 : 1;
+      $('camera').style.filter = naAbertura ? 'blur(3px)' : 'none';
+      $('rotulo').hidden = naAbertura;
+      $('lpChamada').style.visibility = naAbertura ? 'hidden' : 'visible';
+      if (!naAbertura) {
+        $('rotuloNum').textContent = `${String(cfg.planos.indexOf(plano) + 1).padStart(2, '0')}/${String(cfg.planos.length).padStart(2, '0')}`;
+        $('rotuloNome').textContent = plano.rotulo;
+      }
+      const c = e.cursor;
+      $('cursorL').style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.apertado ? .78 : 1})`;
+      grao(e.frame + 1);
+    } else {
+      await Promise.all([carregar($('imgLoop'), e.quadro), carregar($('imgBrilho'), e.quadro)]);
+      // câmera: inclinação e aproximação senoidais, fecham o ciclo no fim do loop
+      const a = (e.t / cfg.duracao) * Math.PI * 2;
+      $('camera').style.transform =
+        `scale(${1.13 + .035 * Math.sin(a)}) rotateX(${(4 + 2.2 * Math.sin(a + .9)).toFixed(3)}deg) rotateY(${(2.6 * Math.cos(a)).toFixed(3)}deg) rotateZ(${(.6 * Math.sin(a * 2)).toFixed(3)}deg)`;
+      const c = e.cursor;
+      $('cursorL').style.transform = `translate(${c.x}px, ${c.y}px) scale(${c.apertado ? .78 : 1})`;
+      grao(e.frame + 1);
+    }
+  };
+</script>
+</body>
+</html>

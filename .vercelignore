@@ -31,3 +31,6 @@ catalogo.html
 ferramentas/
 servidor-local.mjs
 .claude/
+
+# vídeos do Instagram: ferramenta local, não vai para o site
+videos/

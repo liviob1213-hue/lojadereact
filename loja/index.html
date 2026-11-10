@@ -4,9 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>FULGOR — 20 efeitos de interface prontos para o seu app</title>
-<meta name="description" content="Vinte efeitos de interface em HTML, CSS e JavaScript puros, com prévia ao vivo. R$ 7,90 cada ou o pacote completo com os 20 por R$ 126,90." />
+<meta name="description" content="Vinte efeitos de interface em HTML, CSS e JavaScript puros, com prévia ao vivo. R$ 7,90 cada ou o pacote completo com os 20 por R$ 87,90." />
 <meta name="theme-color" content="#070605" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6a1a'/%3E%3Cpath d='M11 8h11v4h-6.5v3.5H20v4h-4.5V24H11z' fill='%23070605'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/png" href="../marca/favicon-64.png" />
+<link rel="apple-touch-icon" href="../marca/apple-touch-icon.png" />
 <style>
   /* ============================================================
      FULGOR — loja de efeitos de interface
@@ -70,6 +71,8 @@
   }
   @keyframes sumir{to{opacity:0;transform:scale(.96)}}
   .intro-miolo{display:flex;flex-direction:column;align-items:center;gap:22px}
+  .intro-logo{width:clamp(110px,16vw,168px);height:auto;margin-bottom:-6px;animation:entraLogo 1.1s var(--mola) both;filter:drop-shadow(0 0 40px rgba(255,106,26,.45))}
+  @keyframes entraLogo{from{opacity:0;transform:scale(.7) rotate(-25deg);filter:blur(10px) drop-shadow(0 0 0 transparent)}}
   .intro-marca{
     font-family:var(--serif);font-weight:600;font-size:clamp(44px,9vw,104px);letter-spacing:.14em;
     line-height:1;padding-left:.14em;
@@ -99,12 +102,8 @@
   }
   .nav.firme{background:rgba(7,6,5,.78);backdrop-filter:blur(20px) saturate(150%);border-bottom-color:var(--linha);padding-top:12px;padding-bottom:12px}
   .marca{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:19px;font-weight:600;letter-spacing:.22em}
-  .marca i{
-    width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;
-    background:linear-gradient(150deg,var(--laranja-2),#e8540b);color:#120701;
-    font-family:var(--serif);font-size:17px;font-style:normal;letter-spacing:0;font-weight:700;
-    box-shadow:0 6px 18px -8px rgba(255,106,26,.9),inset 0 1px 0 rgba(255,255,255,.4);
-  }
+  /* a logo é uma imagem com a borda já esfumada, então assenta em qualquer preto */
+  .marca img{width:38px;height:38px;flex:none;display:block;margin:-4px -2px -4px -6px;filter:drop-shadow(0 0 10px rgba(255,106,26,.35))}
   .marca em{font-style:normal;color:var(--texto-3);font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;margin-left:2px}
   .nav-links{display:flex;gap:4px;margin-left:auto}
   .nav-links a{padding:9px 13px;border-radius:999px;font-size:13.5px;color:var(--texto-2);transition:color .25s,background .25s}
@@ -609,7 +608,7 @@
   @media (max-width:430px){
     .nav{padding:12px 14px;gap:8px}
     .marca{font-size:15px;letter-spacing:.1em;gap:8px}
-    .marca i{width:27px;height:27px;border-radius:8px;font-size:15px}
+    .marca img{width:32px;height:32px;margin:-3px -2px -3px -5px}
     .nav-sacola{padding:8px 9px;gap:5px}
     .rotulo-sacola{display:none}
     .nav-dir .btn{padding:8px 11px;font-size:12px}
@@ -642,6 +641,7 @@
 <!-- ============================================================ abertura -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-miolo">
+    <img class="intro-logo" src="../marca/fulgor-logo-512.webp" alt="" width="168" height="168" />
     <div class="intro-marca" aria-label="FULGOR">
       <span style="--i:0">F</span><span style="--i:1">U</span><span style="--i:2">L</span><span style="--i:3">G</span><span style="--i:4">O</span><span style="--i:5">R</span>
     </div>
@@ -655,7 +655,7 @@
 
 <!-- ============================================================ navegação -->
 <header class="nav" id="nav">
-  <a class="marca" href="#topo" aria-label="FULGOR, início"><i>F</i>FULGOR<em>efeitos</em></a>
+  <a class="marca" href="#topo" aria-label="FULGOR, início"><img src="../marca/fulgor-logo-160.webp" alt="" width="38" height="38" />FULGOR<em>efeitos</em></a>
   <nav class="nav-links" aria-label="Seções">
     <a href="#efeitos">Os 20 efeitos</a>
     <a href="#porque">Por que importa</a>
@@ -690,7 +690,7 @@
               Ver os 20 ao vivo
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
             </a>
-            <a class="btn btn-vazio" href="#pacote">Pacote completo · R$ 126,90</a>
+            <a class="btn btn-vazio" href="#pacote">Pacote completo · R$ 87,90</a>
           </div>
           <div class="hero-provas sobe" style="--d:500ms">
             <span>Zero dependências</span>
@@ -771,11 +771,11 @@
         <div class="chamada-grade">
           <div>
             <h2>Pare de entregar telas mortas.</h2>
-            <p>Escolha um efeito e veja a diferença na próxima tela que você publicar. Um custa R$ 7,90. Os vinte saem por R$ 126,90.</p>
+            <p>Escolha um efeito e veja a diferença na próxima tela que você publicar. Um custa R$ 7,90. Os vinte saem por R$ 87,90.</p>
           </div>
           <div class="acoes">
             <a class="btn btn-primario" href="#efeitos">Escolher um efeito</a>
-            <a class="btn btn-vazio" href="#pacote">Levar os 20 · economizar R$ 31,10</a>
+            <a class="btn btn-vazio" href="#pacote">Levar os 20 · economizar R$ 70,10</a>
           </div>
         </div>
         <small>Compra única · o código é seu para usar nos seus projetos</small>
@@ -826,21 +826,21 @@
           <h2>Os vinte,<br>de uma vez.</h2>
           <p>
             Um efeito custa R$ 7,90. Os vinte separados custariam R$ 158,00.
-            No pacote completo você leva todos por <b style="color:var(--ambar)">R$ 126,90</b> —
-            R$ 6,35 por efeito, com <b style="color:var(--ambar)">R$ 31,10 de desconto</b>.
+            No pacote completo você leva todos por <b style="color:var(--ambar)">R$ 87,90</b> —
+            R$ 4,40 por efeito, com <b style="color:var(--ambar)">R$ 70,10 de desconto</b>.
           </p>
           <h3 style="font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--texto-3);margin:0 0 14px">O que vem no pacote</h3>
           <ul class="lista-pacote" id="listaPacote"></ul>
         </div>
 
         <div class="pacote-dir">
-          <div class="selo-desconto" aria-hidden="true">20%<small>OFF</small></div>
+          <div class="selo-desconto" aria-hidden="true">44%<small>OFF</small></div>
           <span class="rotulo">pacote completo</span>
           <span class="de">R$ 158,00</span>
-          <div class="por"><b>R$ 126,90</b><span>à vista</span></div>
-          <span class="cada">ou <b>R$ 6,35</b> por efeito · economia de R$ 31,10</span>
+          <div class="por"><b>R$ 87,90</b><span>à vista</span></div>
+          <span class="cada">ou <b>R$ 4,40</b> por efeito · economia de R$ 70,10</span>
           <a class="btn btn-primario" href="https://pay.kiwify.com.br/nZDvypz" target="_blank" rel="noopener">
-            <span class="txt-longo">Levar os 20 por R$ 126,90</span><span class="txt-curto">Levar os 20</span>
+            <span class="txt-longo">Levar os 20 por R$ 87,90</span><span class="txt-curto">Levar os 20</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
           <p class="nota">20 pastas · um efeito por pasta, com o documento .txt · abre com dois cliques, sem instalar nada</p>
@@ -848,7 +848,7 @@
       </div>
 
       <div class="passos revelar" style="--d:100ms">
-        <div class="passo"><b>01 · escolha</b><strong>Um efeito ou os vinte</strong><span>R$ 7,90 por efeito, R$ 126,90 no pacote completo.</span></div>
+        <div class="passo"><b>01 · escolha</b><strong>Um efeito ou os vinte</strong><span>R$ 7,90 por efeito, R$ 87,90 no pacote completo.</span></div>
         <div class="passo"><b>02 · finalize</b><strong>Pagamento único</strong><span>Sem assinatura, sem mensalidade, sem pegadinha.</span></div>
         <div class="passo"><b>03 · cole no projeto</b><strong>Copie a pasta e use</strong><span>HTML, CSS e JS puros. Abre offline, dentro do seu site ou app.</span></div>
       </div>
@@ -864,7 +864,7 @@
           <h2 class="titulo-secao revelar" style="--d:60ms">Dúvidas<br>rápidas.</h2>
           <p class="linha-fina revelar" style="--d:120ms;margin-top:18px;font-size:14px">
             Se ficar qualquer coisa no ar, comece pelo pacote: ele cobre os vinte
-            caminhos de uma vez e custa menos que dezessete efeitos avulsos.
+            caminhos de uma vez e custa menos que doze efeitos avulsos.
           </p>
         </div>
         <div class="duvidas-lista revelar" style="--d:100ms">
@@ -886,7 +886,7 @@
           </details>
           <details>
             <summary>E se eu quiser só um efeito?</summary>
-            <p>Cada efeito sai por <b>R$ 7,90</b>, sozinho. O pacote começa a compensar a partir do décimo sétimo — e aí ele já é o melhor caminho: os vinte por R$ 126,90.</p>
+            <p>Cada efeito sai por <b>R$ 7,90</b>, sozinho. O pacote começa a compensar a partir do décimo segundo — e aí ele já é o melhor caminho: os vinte por R$ 87,90.</p>
           </details>
         </div>
       </div>
@@ -899,7 +899,7 @@
   <div class="envelope">
     <div class="rodape-grade">
       <div>
-        <a class="marca" href="#topo"><i>F</i>FULGOR<em>efeitos</em></a>
+        <a class="marca" href="#topo"><img src="../marca/fulgor-logo-160.webp" alt="" width="38" height="38" />FULGOR<em>efeitos</em></a>
         <p>Efeitos de interface em HTML, CSS e JavaScript puros. Feitos para copiar, colar e deixar a tela com vida.</p>
       </div>
       <div>
@@ -921,7 +921,7 @@
     </div>
     <div class="rodape-base">
       <span>© 2026 FULGOR · Efeitos de interface. Preços em reais (BRL).</span>
-      <span>Efeito avulso R$ 7,90 · pacote com os 20 R$ 126,90</span>
+      <span>Efeito avulso R$ 7,90 · pacote com os 20 R$ 87,90</span>
     </div>
   </div>
 </footer>
@@ -930,9 +930,9 @@
 <div class="barra-pacote" id="barraPacote">
   <div class="barra-info">
     <small>pacote completo</small>
-    <b>R$ 126,90</b>
+    <b>R$ 87,90</b>
   </div>
-  <p class="barra-dica">Os <b>20 efeitos</b> por menos que dezessete avulsos — <b>R$ 31,10</b> de economia.</p>
+  <p class="barra-dica">Os <b>20 efeitos</b> por menos que doze avulsos — <b>R$ 70,10</b> de economia.</p>
   <a class="btn btn-primario btn-pequeno" href="https://pay.kiwify.com.br/nZDvypz" target="_blank" rel="noopener">
     <span class="txt-longo">Levar os 20</span><span class="txt-curto">Levar</span>
   </a>
@@ -988,7 +988,7 @@
    ============================================================ */
 
 const PRECO_EFEITO = 7.90;
-const PRECO_PACOTE = 126.90;
+const PRECO_PACOTE = 87.90;
 const LINK_PACOTE = 'https://pay.kiwify.com.br/nZDvypz';
 const LARGURA_PREVIA = 1280;
 const ALTURA_PREVIA = 860;
@@ -1113,7 +1113,7 @@ grade.innerHTML = EFEITOS.map((e, i) => `
   </article>`).join('') + `
   <aside class="aviso-mais revelar">
     <h3>Sem paciência para escolher?</h3>
-    <p>Os vinte juntos saem por <b>${real(PRECO_PACOTE)}</b> em vez de ${real(PRECO_EFEITO * EFEITOS.length)}. Menos que dezessete efeitos avulsos para levar todos.</p>
+    <p>Os vinte juntos saem por <b>${real(PRECO_PACOTE)}</b> em vez de ${real(PRECO_EFEITO * EFEITOS.length)}. Menos que doze efeitos avulsos para levar todos.</p>
     <a class="btn btn-vazio btn-pequeno" href="#pacote">Ver o pacote completo</a>
   </aside>`;
 
